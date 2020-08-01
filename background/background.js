@@ -1,13 +1,6 @@
 // add notification listener for foreground page messages
 browser.runtime.onMessage.addListener(notify);
 
-// creates the readable article object from Readability
-function createReadableVersion(dom) {
-  var reader = new Readability(dom);
-  var article = reader.parse();
-  return article;
-}
-
 // convert the article content to markdown using Turndown
 function convertArticleToMarkdown(article) {
   var turndownService = new TurndownService();
@@ -70,8 +63,7 @@ function notify(message) {
     }
 
     // make markdown document from the dom
-    var article = createReadableVersion(dom);
-    var markdown = convertArticleToMarkdown(article);
+    var markdown = convertArticleToMarkdown(new Readability(dom).parse());
 
     // add url to the top of the markdown
     markdown = dom.baseURI + "\n\n" + markdown;
