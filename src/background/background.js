@@ -34,7 +34,6 @@ TurndownService.prototype.defaultEscape = TurndownService.prototype.escape;
 
 // function to convert the article content to markdown using Turndown
 function turndown(content, options, article) {
-
   if (options.turndownEscape) TurndownService.prototype.escape = TurndownService.prototype.defaultEscape;
   else TurndownService.prototype.escape = s => s;
 
@@ -48,12 +47,12 @@ function turndown(content, options, article) {
     filter: function (node, tdopts) {
       // if we're looking at an img node with a src
       if (node.nodeName == 'IMG' && node.getAttribute('src')) {
-        
+
         // get the original src
         let src = node.getAttribute('src')
         // set the new src
         node.setAttribute('src', validateUri(src, article.baseURI));
-        
+
         // if we're downloading images, there's more to do.
         if (options.downloadImages) {
           // generate a file name for the image
@@ -78,9 +77,9 @@ function turndown(content, options, article) {
             ? imageFilename.substring(imageFilename.lastIndexOf('/') + 1)
             // otherwise we may need to modify the filename to uri encode parts for a pure markdown link
             : imageFilename.split('/').map(s => obsidianLink ? s : encodeURI(s)).join('/')
-          
+
           // set the new src attribute to be the local filename
-          if(options.imageStyle != 'originalSource') node.setAttribute('src', localSrc);
+          if (options.imageStyle != 'originalSource') node.setAttribute('src', localSrc);
           // pass the filter if we're making an obsidian link (or stripping links)
           return obsidianLink || options.imageStyle == 'noImage';
         }
@@ -117,13 +116,30 @@ function turndown(content, options, article) {
     replacement: (content, node, tdopts) => content
   });
 
+  // handle multiple lines math
+  turndownService.addRule('mathjax', {
+    filter(node, options) {
+      const id = node.id || ''
+      return id.startsWith('MathJax-Element')
+    },
+    replacement(content, node, options) {
+      const mathId = node.id.match(/MathJax-Element-(\d+)/)[1]
+      const math = article.math[mathId]
+      if (math.inline)
+        return `$${math.tex}$`
+      else
+        return `$$\n${math.tex}\n$$`
+    }
+  })
+
+
   let markdown = options.frontmatter + turndownService.turndown(content)
-      + options.backmatter;
+    + options.backmatter;
 
   // strip out non-printing special characters which CodeMirror displays as a red dot
   // see: https://codemirror.net/doc/manual.html#option_specialChars
   markdown = markdown.replace(/[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200f\u2028\u2029\ufeff\ufff9-\ufffc]/g, '');
-  
+
   return { markdown: markdown, imageList: imageList };
 }
 
@@ -161,12 +177,12 @@ function getImageFilename(src, options, prependFilePath = true) {
   else if (prependFilePath) {
     imagePrefix = options.title + (imagePrefix.startsWith('/') ? '' : '/') + imagePrefix
   }
-  
+
   if (filename.includes(';base64,')) {
     // this is a base64 encoded image, so what are we going to do for a filename here?
     filename = 'image.' + filename.substring(0, filename.indexOf(';'));
   }
-  
+
   let extension = filename.substring(filename.lastIndexOf('.'));
   if (extension == filename) {
     // there is no extension, so we need to figure one out
@@ -248,7 +264,7 @@ async function convertArticleToMarkdown(article, downloadImages = null) {
   }
 
   options.imagePrefix = textReplace(options.imagePrefix, article, options.disallowedChars)
-    .split('/').map(s=>generateValidFileName(s, options.disallowedChars)).join('/');
+    .split('/').map(s => generateValidFileName(s, options.disallowedChars)).join('/');
 
   let result = turndown(article.content, options, article);
   if (options.downloadImages && options.downloadMode == 'downloadsApi') {
@@ -266,14 +282,14 @@ function generateValidFileName(title, disallowedChars = null) {
   var illegalRe = /[\/\?<>\\:\*\|":]/g;
   // and non-breaking spaces (thanks @Licat)
   var name = title.replace(illegalRe, "").replace(new RegExp('\u00A0', 'g'), ' ');
-  
+
   if (disallowedChars) {
     for (let c of disallowedChars) {
       if (`[\\^$.|?*+()`.includes(c)) c = `\\${c}`;
       name = name.replace(new RegExp(c, 'g'), '');
     }
   }
-  
+
   return name;
 }
 
@@ -285,43 +301,43 @@ async function preDownloadImages(imageList, markdown) {
   // proper file extension to put into the markdown.
   // so... here we are waiting for all the downloads and replacements to complete
   await Promise.all(Object.entries(imageList).map(([src, filename]) => new Promise((resolve, reject) => {
-        // we're doing an xhr so we can get it as a blob and determine filetype
-        // before the final save
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', src);
-        xhr.responseType = "blob";
-        xhr.onload = async function () {
-          // here's the returned blob
-          const blob = xhr.response;
-          let newFilename = filename;
-          if (newFilename.endsWith('.idunno')) {
-            // replace any unknown extension with a lookup based on mime type
-            newFilename = filename.replace('.idunno', '.' + mimedb[blob.type]);
+    // we're doing an xhr so we can get it as a blob and determine filetype
+    // before the final save
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', src);
+    xhr.responseType = "blob";
+    xhr.onload = async function () {
+      // here's the returned blob
+      const blob = xhr.response;
+      let newFilename = filename;
+      if (newFilename.endsWith('.idunno')) {
+        // replace any unknown extension with a lookup based on mime type
+        newFilename = filename.replace('.idunno', '.' + mimedb[blob.type]);
 
-            // and replace any instances of this in the markdown
-            // remember to url encode for replacement if it's not an obsidian link
-            if (!options.imageStyle.startsWith("obsidian")) {
-              markdown = markdown.replaceAll(filename.split('/').map(s => encodeURI(s)).join('/'), newFilename.split('/').map(s => encodeURI(s)).join('/'))
-            }
-            else {
-              markdown = markdown.replaceAll(filename, newFilename)
-            }
-          }
+        // and replace any instances of this in the markdown
+        // remember to url encode for replacement if it's not an obsidian link
+        if (!options.imageStyle.startsWith("obsidian")) {
+          markdown = markdown.replaceAll(filename.split('/').map(s => encodeURI(s)).join('/'), newFilename.split('/').map(s => encodeURI(s)).join('/'))
+        }
+        else {
+          markdown = markdown.replaceAll(filename, newFilename)
+        }
+      }
 
-          // create an object url for the blob (no point fetching it twice)
-          const blobUrl = URL.createObjectURL(blob);
+      // create an object url for the blob (no point fetching it twice)
+      const blobUrl = URL.createObjectURL(blob);
 
-          // add this blob into the new image list
-          newImageList[blobUrl] = newFilename;
+      // add this blob into the new image list
+      newImageList[blobUrl] = newFilename;
 
-          // resolve this promise now
-          // (the file might not be saved yet, but the blob is and replacements are complete)
-          resolve();
-        };
-        xhr.onerror = function () {
-          reject('A network error occurred attempting to download ' + src);
-        };
-        xhr.send();
+      // resolve this promise now
+      // (the file might not be saved yet, but the blob is and replacements are complete)
+      resolve();
+    };
+    xhr.onerror = function () {
+      reject('A network error occurred attempting to download ' + src);
+    };
+    xhr.send();
   })));
 
   return { imageList: newImageList, markdown: markdown };
@@ -331,15 +347,15 @@ async function preDownloadImages(imageList, markdown) {
 async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsFolder = '') {
   // get the options
   const options = await getOptions();
-  
+
   // download via the downloads API
   if (options.downloadMode == 'downloadsApi' && browser.downloads) {
-    
+
     // create the object url with markdown data as a blob
     const url = URL.createObjectURL(new Blob([markdown], {
       type: "text/markdown;charset=utf-8"
     }));
-  
+
     try {
       // start the download
       const id = await browser.downloads.download({
@@ -388,7 +404,7 @@ async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsF
   //     // the page, for example if the tab is a privileged page.
   //     console.error("Failed to execute script: " + error);
   //   };
-    
+
   // }
   // download via content link
   else {
@@ -396,7 +412,7 @@ async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsF
       await ensureScripts(tabId);
       const filename = mdClipsFolder + generateValidFileName(title, options.disallowedChars) + ".md";
       const code = `downloadMarkdown("${filename}","${base64EncodeUnicode(markdown)}");`
-      await browser.tabs.executeScript(tabId, {code: code});
+      await browser.tabs.executeScript(tabId, { code: code });
     }
     catch (error) {
       // This could happen if the extension is not allowed to run code in
@@ -441,7 +457,7 @@ async function notify(message) {
     if (message.selection && message.clipSelection) {
       article.content = message.selection;
     }
-    
+
     // convert the article to markdown
     const { markdown, imageList } = await convertArticleToMarkdown(article);
 
@@ -452,7 +468,7 @@ async function notify(message) {
     const mdClipsFolder = await formatMdClipsFolder(article);
 
     // display the data in the popup
-    await browser.runtime.sendMessage({ type: "display.md", markdown: markdown, article: article, imageList: imageList, mdClipsFolder: mdClipsFolder});
+    await browser.runtime.sendMessage({ type: "display.md", markdown: markdown, article: article, imageList: imageList, mdClipsFolder: mdClipsFolder });
   }
   // message for triggering download
   else if (message.type == "download") {
@@ -472,19 +488,19 @@ async function createMenus() {
       id: "download-markdown-tab",
       title: "Download Tab as Markdown",
       contexts: ["tab"]
-    }, () => {});
+    }, () => { });
 
     browser.contextMenus.create({
       id: "tab-download-markdown-alltabs",
       title: "Download All Tabs as Markdown",
       contexts: ["tab"]
-    }, () => {});
+    }, () => { });
 
     browser.contextMenus.create({
       id: "copy-tab-as-markdown-link-tab",
       title: "Copy Tab URL as Markdown Link",
       contexts: ["tab"]
-    }, () => {});
+    }, () => { });
 
     browser.contextMenus.create({
       id: "tab-separator-1",
@@ -512,25 +528,25 @@ async function createMenus() {
     id: "separator-0",
     type: "separator",
     contexts: ["all"]
-  }, () => {});
+  }, () => { });
 
   // download actions
   browser.contextMenus.create({
     id: "download-markdown-selection",
     title: "Download Selection As Markdown",
     contexts: ["selection"]
-  }, () => {});
+  }, () => { });
   browser.contextMenus.create({
     id: "download-markdown-all",
     title: "Download Tab As Markdown",
     contexts: ["all"]
-  }, () => {});
+  }, () => { });
 
   browser.contextMenus.create({
     id: "separator-1",
     type: "separator",
     contexts: ["all"]
-  }, () => {});
+  }, () => { });
 
   // copy to clipboard actions
   browser.contextMenus.create({
@@ -547,7 +563,7 @@ async function createMenus() {
     id: "copy-markdown-image",
     title: "Copy Image As Markdown",
     contexts: ["image"]
-  }, () => {});
+  }, () => { });
   browser.contextMenus.create({
     id: "copy-markdown-all",
     title: "Copy Tab As Markdown",
@@ -557,14 +573,14 @@ async function createMenus() {
     id: "copy-tab-as-markdown-link",
     title: "Copy Tab URL as Markdown Link",
     contexts: ["all"]
-  }, () => {});
-  
+  }, () => { });
+
   browser.contextMenus.create({
     id: "separator-2",
     type: "separator",
     contexts: ["all"]
   }, () => { });
-  
+
   // options
   browser.contextMenus.create({
     id: "toggle-includeTemplate",
@@ -610,8 +626,8 @@ browser.contextMenus.onClicked.addListener(function (info, tab) {
 async function toggleSetting(setting, options = null) {
   // if there's no options object passed in, we need to go get one
   if (options == null) {
-      // get the options from storage and toggle the setting
-      await toggleSetting(setting, await getOptions());
+    // get the options from storage and toggle the setting
+    await toggleSetting(setting, await getOptions());
   }
   else {
     // toggle the option and save back to storage
@@ -637,7 +653,7 @@ async function ensureScripts(tabId) {
   // has been defined. If this is not the case, then we need to run
   // pageScraper.js to define function getSelectionAndDom.
   if (!results || results[0] !== true) {
-    await browser.tabs.executeScript(tabId, {file: "/contentScript/contentScript.js"});
+    await browser.tabs.executeScript(tabId, { file: "/contentScript/contentScript.js" });
   }
 }
 
@@ -649,6 +665,18 @@ async function getArticleFromDom(domString) {
   if (dom.documentElement.nodeName == "parsererror") {
     console.error("error while parsing");
   }
+
+  const math = {}
+  dom.body.querySelectorAll('script[id^=MathJax-Element-]')?.forEach(mathSource => {
+    const mathId = mathSource.id.match(/MathJax-Element-(\d+)/)[1]
+    if (mathId) {
+      const type = mathSource.attributes.type.value
+      math[mathId] = {
+        tex: mathSource.innerText.trim().replace("&nbsp", " "),
+        inline: type ? !type.includes('mode=display') : false
+      };
+    }
+  })
 
   // simplify the dom into an article
   const article = new Readability(dom).parse();
@@ -666,6 +694,8 @@ async function getArticleFromDom(domString) {
       article[meta.name] = meta.content;
     }
   })
+
+  article.math = math
 
   // return the article
   return article;
@@ -696,9 +726,9 @@ async function getArticleFromContent(tabId, selection = false) {
 // function to apply the title template
 async function formatTitle(article) {
   let options = await getOptions();
-  
+
   let title = textReplace(options.title, article, options.disallowedChars);
-  title = title.split('/').map(s=>generateValidFileName(s, options.disallowedChars)).join('/');
+  title = title.split('/').map(s => generateValidFileName(s, options.disallowedChars)).join('/');
   return title;
 }
 
@@ -723,7 +753,7 @@ async function downloadMarkdownFromContext(info, tab) {
   const { markdown, imageList } = await convertArticleToMarkdown(article);
   // format the mdClipsFolder
   const mdClipsFolder = await formatMdClipsFolder(article);
-  await downloadMarkdown(markdown, title, tab.id, imageList, mdClipsFolder); 
+  await downloadMarkdown(markdown, title, tab.id, imageList, mdClipsFolder);
 
 }
 
@@ -745,17 +775,17 @@ async function copyTabAsMarkdownLink(tab) {
 
 // function to copy markdown to the clipboard, triggered by context menu
 async function copyMarkdownFromContext(info, tab) {
-  try{
+  try {
     await ensureScripts(tab.id);
     if (info.menuItemId == "copy-markdown-link") {
       const options = await getOptions();
       options.frontmatter = options.backmatter = '';
       const article = await getArticleFromContent(tab.id, false);
       const { markdown } = turndown(`<a href="${info.linkUrl}">${info.linkText || info.selectionText}</a>`, { ...options, downloadImages: false }, article);
-      await browser.tabs.executeScript(tab.id, {code: `copyToClipboard(${JSON.stringify(markdown)})`});
+      await browser.tabs.executeScript(tab.id, { code: `copyToClipboard(${JSON.stringify(markdown)})` });
     }
     else if (info.menuItemId == "copy-markdown-image") {
-      await browser.tabs.executeScript(tab.id, {code: `copyToClipboard("![](${info.srcUrl})")`});
+      await browser.tabs.executeScript(tab.id, { code: `copyToClipboard("![](${info.srcUrl})")` });
     }
     else {
       const article = await getArticleFromContent(tab.id, info.menuItemId == "copy-markdown-selection");
@@ -786,15 +816,15 @@ async function downloadMarkdownForAllTabs(info) {
  * @license MIT
  */
 if (!String.prototype.replaceAll) {
-	String.prototype.replaceAll = function(str, newStr){
+  String.prototype.replaceAll = function (str, newStr) {
 
-		// If a regex pattern
-		if (Object.prototype.toString.call(str).toLowerCase() === '[object regexp]') {
-			return this.replace(str, newStr);
-		}
+    // If a regex pattern
+    if (Object.prototype.toString.call(str).toLowerCase() === '[object regexp]') {
+      return this.replace(str, newStr);
+    }
 
-		// If a string
-		return this.replace(new RegExp(str, 'g'), newStr);
+    // If a string
+    return this.replace(new RegExp(str, 'g'), newStr);
 
-	};
+  };
 }
