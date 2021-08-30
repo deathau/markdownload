@@ -670,9 +670,12 @@ async function getArticleFromDom(domString) {
   dom.body.querySelectorAll('script[id^=MathJax-Element-]')?.forEach(mathSource => {
     const mathId = mathSource.id.match(/MathJax-Element-(\d+)/)[1]
     if (mathId) {
+      let tex = mathSource.innerText.trim()
+      tex = tex.replaceAll("\xa0", " ")
+
       const type = mathSource.attributes.type.value
       math[mathId] = {
-        tex: mathSource.innerText.trim().replace("&nbsp", " "),
+        tex,
         inline: type ? !type.includes('mode=display') : false
       };
     }
