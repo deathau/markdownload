@@ -87,7 +87,7 @@ input[type="text"] {
 
 .save {
     display:block;
-    width:100%;
+    width: 100px;
     padding: 1em 0;
     margin: 0;
     background-color: var(--primary);
@@ -96,6 +96,7 @@ input[type="text"] {
     text-decoration: none;
     line-height: 1em;
     border:none;
+    cursor: pointer;
 }
 
 .status {

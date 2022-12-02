@@ -37,6 +37,7 @@ const saveOptions = e => {
     }
 
     save();
+    window.close();
 }
 
 const save = () => {
