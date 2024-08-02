@@ -63,7 +63,6 @@ function Readability(doc, options) {
 		this.log = function () {};
 	}
 }
-
 Readability.prototype = {
 	FLAG_STRIP_UNLIKELYS: 0x1,
 	FLAG_WEIGHT_CLASSES: 0x2,
@@ -499,14 +498,7 @@ Readability.prototype = {
 		for (var i = 0; i < node.attributes.length; i++) {
 			try {
 				replacement.setAttribute(node.attributes[i].name, node.attributes[i].value);
-			} catch (ex) {
-				/* it's possible for setAttribute() to throw if the attribute name
-				 * isn't a valid XML Name. Such attributes can however be parsed from
-				 * source in HTML docs, see https://github.com/whatwg/html/issues/4275,
-				 * so we can hit them here and then throw. We don't care about such
-				 * attributes so we ignore them.
-				 */
-			}
+			} catch (ex) {}
 		}
 		return replacement;
 	},
@@ -644,24 +636,109 @@ Readability.prototype = {
 		return 1 - distanceB;
 	},
 
+	_extractAuthorFromJS: function () {
+		// console.log("Extracting author from JavaScript variables...");
+		this._doc.getElementsByTagName("script").innerHTML;
+		// console.log("Found " + this._doc.getElementsByTagName("script").length + " script tags....");
+		let scripts = this._doc.getElementsByTagName("script");
+		// console.log("Found " + scripts.length + " script tags.");
+		for (let i = 0; i < scripts.length; i++) {
+			let scriptContent = scripts[i].textContent;
+			// console.log("Inspecting script content:", scriptContent);
+
+			let match = scriptContent.match(/setContentAuthor\s*\(\s*["']([^"']+)["']\s*\)/i);
+			if (match) {
+				// console.log("Match found:", match);
+			}
+
+			if (match && match[1]) {
+				// console.log("Found author in JavaScript: " + match[1].trim());
+				return match[1].trim();
+			}
+		}
+		// console.log("No author found in JavaScript.");
+		return null;
+	},
+
+	_extractAuthorFromAttributes: function () {
+		// console.log("Extracting author from custom attributes...");
+		let metaTags = this._doc.getElementsByTagName("meta");
+		for (let i = 0; i < metaTags.length; i++) {
+			let element = metaTags[i];
+			if (element.hasAttribute("data-authors")) {
+				let author = element.getAttribute("data-authors").trim();
+				// console.log("Found author in data-authors attribute: " + author);
+				return author;
+			}
+			if (element.hasAttribute("primaryAuthor")) {
+				let author = element.getAttribute("primaryAuthor").trim();
+				// console.log("Found author in primaryAuthor attribute: " + author);
+				return author;
+			}
+		}
+		// console.log("No author found in custom attributes.");
+		return null;
+	},
+
+	_getAllAvailableTagNames: function (doc) {
+		let elements = doc.getElementsByTagName("*");
+		let tagNames = new Set();
+
+		for (let i = 0; i < elements.length; i++) {
+			tagNames.add(elements[i].tagName.toLowerCase());
+		}
+
+		console.log("Available tag names:", Array.from(tagNames));
+		return Array.from(tagNames);
+	},
+
 	_checkByline: function (node, matchString) {
 		if (this._articleByline) {
+			// console.log("Article byline already set: " + this._articleByline);
 			return false;
 		}
 
-		if (node.getAttribute !== undefined) {
-			var rel = node.getAttribute("rel");
-			var itemprop = node.getAttribute("itemprop");
+		// console.log("Available tag names:", this._getAllAvailableTagNames(document));
+
+		let possibleBylines = [];
+
+		// Extract author from JavaScript variables first
+		// console.log("Extracting author from JavaScript variables...");
+		let authorFromJS = this._extractAuthorFromJS();
+		if (authorFromJS) {
+			possibleBylines.push(authorFromJS);
+			// console.log("Byline from JS: " + authorFromJS);
 		}
 
+		// Extract author from custom attributes
+		// console.log("Extracting author from custom attributes...");
+		let authorFromAttributes = this._extractAuthorFromAttributes();
+		if (authorFromAttributes) {
+			possibleBylines.push(authorFromAttributes);
+			// console.log("Byline from attributes: " + authorFromAttributes);
+		}
+
+		// Extract author from meta tags
+		// console.log("Extracting author from meta tags...");
+		let rel = node.getAttribute("rel");
+		let itemprop = node.getAttribute("itemprop");
 		if (
 			(rel === "author" || (itemprop && itemprop.indexOf("author") !== -1) || this.REGEXPS.byline.test(matchString)) &&
 			this._isValidByline(node.textContent)
 		) {
-			this._articleByline = node.textContent.trim();
+			possibleBylines.push(node.textContent.trim());
+			// console.log("Byline from meta or rel attributes: " + node.textContent.trim());
+		}
+
+		// Determine the final byline value (you can define your own priority/condition here)
+		if (possibleBylines.length > 0) {
+			// For example, you can prioritize the byline from attributes over JS and meta tags
+			this._articleByline = possibleBylines.find((byline) => byline) || possibleBylines[0];
+			// console.log("Final article byline: " + this._articleByline);
 			return true;
 		}
 
+		// console.log("No byline found.");
 		return false;
 	},
 
@@ -1084,6 +1161,7 @@ Readability.prototype = {
 
 	_getJSONLD: function (doc) {
 		var scripts = this._getAllNodesWithTag(doc, ["script"]);
+		console.log("Found " + scripts.length + " script tags in _getJSONLD function.");
 
 		var metadata;
 
@@ -1091,6 +1169,7 @@ Readability.prototype = {
 			if (!metadata && jsonLdElement.getAttribute("type") === "application/ld+json") {
 				try {
 					var content = jsonLdElement.textContent.replace(/^\s*<!\[CDATA\[|\]\]>\s*$/g, "");
+					// console.log("JSON-LD content:", content);
 					var parsed = JSON.parse(content);
 					if (!parsed["@context"] || !parsed["@context"].match(/^https?\:\/\/schema\.org$/)) {
 						return;
@@ -1151,7 +1230,47 @@ Readability.prototype = {
 					}
 					return;
 				} catch (err) {
-					this.log(err.message);
+					console.log(err.message);
+				}
+			}
+			// console.log("Extracting primary author from script...");
+		});
+
+		this._forEachNode(scripts, function (scriptElement) {
+			if (!metadata && scriptElement.getAttribute("type") === "text/javascript") {
+				for (let i = 0; i < scripts.length; i++) {
+					let scriptContent = scripts[i].textContent;
+					// console.log("Inspecting script content:", scriptContent);
+					if (scriptContent.includes("window.digitalData")) {
+						metadata = {};
+						try {
+							// Extract the JSON object from the script content
+							let jsonString = scriptContent.match(/window\.digitalData\s*=\s*({[\s\S]*?});/);
+							if (jsonString && jsonString[1]) {
+								// console.log("Found JSON string:", jsonString[1]);
+
+								// Parse the JSON object
+								let digitalData = JSON.parse(jsonString[1]);
+								// console.log("Parsed JSON object:", digitalData);
+
+								// Extract the primary author
+								if (digitalData.page && digitalData.page.attributes && digitalData.page.attributes.primaryAuthor) {
+									let primaryAuthor = digitalData.page.attributes.primaryAuthor;
+									console.log("Found primary author:", primaryAuthor);
+									// return primaryAuthor;
+									// metadata.byline = primaryAuthor;
+
+									if (primaryAuthor) {
+										if (typeof primaryAuthor === "string") {
+											metadata.byline = primaryAuthor.trim();
+										}
+									}
+								}
+							}
+						} catch (e) {
+							console.error("Error parsing script content:", e);
+						}
+					}
 				}
 			}
 		});
