@@ -88,7 +88,7 @@ Readability.prototype = {
 		negative:
 			/-ad-|hidden|^hid$| hid$| hid |^hid |banner|combx|comment|com-|contact|foot|footer|footnote|gdpr|masthead|media|meta|outbrain|promo|related|scroll|share|shoutbox|sidebar|skyscraper|sponsor|shopping|tags|tool|widget/i,
 		extraneous: /print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single|utility/i,
-		byline: /byline|author|dateline|writtenby|p-author/i,
+		byline: /author|byline|dateline|writtenby|p-author/i,
 		replaceFonts: /<(\/?)font[^>]*>/gi,
 		normalize: /\s{2,}/g,
 		videos:
@@ -281,7 +281,7 @@ Readability.prototype = {
 				return uri;
 			}
 
-			console.log("toAbsoluteURI", uri, baseURI, documentURI);
+			// console.log("toAbsoluteURI", uri, baseURI, documentURI);
 
 			try {
 				return new URL(uri, baseURI).href;
@@ -638,7 +638,7 @@ Readability.prototype = {
 
 	_checkByline: function (node, matchString) {
 		if (this._articleByline) {
-			console.log("checkByline", this._articleByline);
+			// console.log("checkByline1: ", this._articleByline);
 			return false;
 		}
 
@@ -647,11 +647,15 @@ Readability.prototype = {
 			var itemprop = node.getAttribute("itemprop");
 		}
 
+		// console.log("checkByline matchString: ", matchString);
+		// console.log("checkByline this.REGEXPS.byline.test(matchString): ", this.REGEXPS.byline.test(matchString));
+
 		if (
 			(rel === "author" || (itemprop && itemprop.indexOf("author") !== -1) || this.REGEXPS.byline.test(matchString)) &&
 			this._isValidByline(node.textContent)
 		) {
 			this._articleByline = node.textContent.trim();
+			// console.log("checkByline2: ", this._articleByline);
 			return true;
 		}
 
@@ -1054,6 +1058,7 @@ Readability.prototype = {
 	_isValidByline: function (byline) {
 		if (typeof byline == "string" || byline instanceof String) {
 			byline = byline.trim();
+			// console.log("Checking valid byline:", byline);
 			return byline.length > 0 && byline.length < 100;
 		}
 		return false;
@@ -1077,7 +1082,7 @@ Readability.prototype = {
 
 	_getByLineValueFromScript: function (doc) {
 		var scripts = this._getAllNodesWithTag(doc, ["script"]);
-		console.log("Found " + scripts.length + " script tags in _getByLineValueFromScript function.");
+		// console.log("Found " + scripts.length + " script tags in _getByLineValueFromScript function.");
 
 		var metadata;
 
@@ -1121,7 +1126,7 @@ Readability.prototype = {
 
 	_getJSONLD: function (doc) {
 		var scripts = this._getAllNodesWithTag(doc, ["script"]);
-		console.log("Found " + scripts.length + " script tags in _getJSONLD function.");
+		// console.log("Found " + scripts.length + " script tags in _getJSONLD function.");
 
 		var metadata;
 
@@ -1151,7 +1156,7 @@ Readability.prototype = {
 						typeof parsed.headline === "string" &&
 						parsed.name !== parsed.headline
 					) {
-						console.log("Article Title:", this._getArticleTitle());
+						// console.log("Article Title:", this._getArticleTitle());
 						var title = this._getArticleTitle();
 						var nameMatches = this._textSimilarity(parsed.name, title) > 0.75;
 						var headlineMatches = this._textSimilarity(parsed.headline, title) > 0.75;
@@ -1255,7 +1260,7 @@ Readability.prototype = {
 				matches = elementProperty.match(propertyPattern);
 				if (matches) {
 					name = matches[0].toLowerCase().replace(/\s/g, "");
-					console.log("Name1: ", name);
+					// console.log("Name1: ", name);
 					values[name] = content.trim();
 				}
 			}
@@ -1263,7 +1268,7 @@ Readability.prototype = {
 				name = elementName;
 				if (content) {
 					name = name.toLowerCase().replace(/\s/g, "").replace(/\./g, ":");
-					console.log("Name2: ", name);
+					// console.log("Name2: ", name);
 					values[name] = content.trim();
 				}
 			}
@@ -1278,7 +1283,7 @@ Readability.prototype = {
 			let trimmedTitle = trimmedUrl.replace(/\//g, "-").replace(/[^a-zA-Z0-9-]/g, "");
 			metadata.fileName = trimmedTitle.replace(/-+$/, "");
 
-			console.log("Title: ", metadata.fileName);
+			// console.log("Title: ", metadata.fileName);
 		}
 
 		metadata.title =
@@ -1295,13 +1300,13 @@ Readability.prototype = {
 			metadata.title = this._getArticleTitle();
 		}
 
+		metadata.byline = jsonld.byline || values["dc:creator"] || values["dcterm:creator"] || values["author"];
+		// console.log("Byline value using jsonld: ", metadata.byline);
+
 		if (!metadata.byline) {
 			this._getByLineValueFromScript(this._doc);
-			console.log("Byline value before setting from jsonld: ", metadata.byline);
+			// console.log("Byline value after setting from jsonld: ", metadata.byline);
 		}
-
-		metadata.byline = jsonld.byline || values["dc:creator"] || values["dcterm:creator"] || values["author"];
-		console.log("Byline value 2: ", metadata.byline);
 
 		metadata.excerpt =
 			jsonld.excerpt ||
@@ -1846,14 +1851,14 @@ Readability.prototype = {
 		var jsonLd = this._disableJSONLD ? {} : this._getJSONLD(this._doc);
 
 		var metadata1 = this._getByLineValueFromScript(this._doc);
-		console.log("Metadata1 byline : ", metadata1.byline);
+		// console.log("Metadata1 byline : ", metadata1.byline);
 
 		this._removeScripts(this._doc);
 
 		this._prepDocument();
 
 		var metadata = this._getArticleMetadata(jsonLd);
-		console.log("Metadata byline : ", metadata.byline);
+		// console.log("Metadata byline : ", metadata.byline);
 		this._articleTitle = metadata.title;
 
 		var articleContent = this._grabArticle();
@@ -1871,7 +1876,11 @@ Readability.prototype = {
 		}
 
 		var textContent = articleContent.textContent;
-		console.log("Byline value before assignment: ", metadata.byline);
+		// console.log("Byline value before assignment: ", metadata.byline);
+
+		// if (this._articleByline) {
+		// console.log("this._articleByline value : ", this._articleByline);
+		// }
 
 		return {
 			fileName: metadata.fileName,
