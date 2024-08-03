@@ -636,109 +636,25 @@ Readability.prototype = {
 		return 1 - distanceB;
 	},
 
-	_extractAuthorFromJS: function () {
-		// console.log("Extracting author from JavaScript variables...");
-		this._doc.getElementsByTagName("script").innerHTML;
-		// console.log("Found " + this._doc.getElementsByTagName("script").length + " script tags....");
-		let scripts = this._doc.getElementsByTagName("script");
-		// console.log("Found " + scripts.length + " script tags.");
-		for (let i = 0; i < scripts.length; i++) {
-			let scriptContent = scripts[i].textContent;
-			// console.log("Inspecting script content:", scriptContent);
-
-			let match = scriptContent.match(/setContentAuthor\s*\(\s*["']([^"']+)["']\s*\)/i);
-			if (match) {
-				// console.log("Match found:", match);
-			}
-
-			if (match && match[1]) {
-				// console.log("Found author in JavaScript: " + match[1].trim());
-				return match[1].trim();
-			}
-		}
-		// console.log("No author found in JavaScript.");
-		return null;
-	},
-
-	_extractAuthorFromAttributes: function () {
-		// console.log("Extracting author from custom attributes...");
-		let metaTags = this._doc.getElementsByTagName("meta");
-		for (let i = 0; i < metaTags.length; i++) {
-			let element = metaTags[i];
-			if (element.hasAttribute("data-authors")) {
-				let author = element.getAttribute("data-authors").trim();
-				// console.log("Found author in data-authors attribute: " + author);
-				return author;
-			}
-			if (element.hasAttribute("primaryAuthor")) {
-				let author = element.getAttribute("primaryAuthor").trim();
-				// console.log("Found author in primaryAuthor attribute: " + author);
-				return author;
-			}
-		}
-		// console.log("No author found in custom attributes.");
-		return null;
-	},
-
-	_getAllAvailableTagNames: function (doc) {
-		let elements = doc.getElementsByTagName("*");
-		let tagNames = new Set();
-
-		for (let i = 0; i < elements.length; i++) {
-			tagNames.add(elements[i].tagName.toLowerCase());
-		}
-
-		console.log("Available tag names:", Array.from(tagNames));
-		return Array.from(tagNames);
-	},
-
 	_checkByline: function (node, matchString) {
 		if (this._articleByline) {
-			// console.log("Article byline already set: " + this._articleByline);
+			console.log("checkByline", this._articleByline);
 			return false;
 		}
 
-		// console.log("Available tag names:", this._getAllAvailableTagNames(document));
-
-		let possibleBylines = [];
-
-		// Extract author from JavaScript variables first
-		// console.log("Extracting author from JavaScript variables...");
-		let authorFromJS = this._extractAuthorFromJS();
-		if (authorFromJS) {
-			possibleBylines.push(authorFromJS);
-			// console.log("Byline from JS: " + authorFromJS);
+		if (node.getAttribute !== undefined) {
+			var rel = node.getAttribute("rel");
+			var itemprop = node.getAttribute("itemprop");
 		}
 
-		// Extract author from custom attributes
-		// console.log("Extracting author from custom attributes...");
-		let authorFromAttributes = this._extractAuthorFromAttributes();
-		if (authorFromAttributes) {
-			possibleBylines.push(authorFromAttributes);
-			// console.log("Byline from attributes: " + authorFromAttributes);
-		}
-
-		// Extract author from meta tags
-		// console.log("Extracting author from meta tags...");
-		let rel = node.getAttribute("rel");
-		let itemprop = node.getAttribute("itemprop");
 		if (
 			(rel === "author" || (itemprop && itemprop.indexOf("author") !== -1) || this.REGEXPS.byline.test(matchString)) &&
 			this._isValidByline(node.textContent)
 		) {
-			possibleBylines.push(node.textContent.trim());
-			// console.log("Byline from meta or rel attributes: " + node.textContent.trim());
-		}
-
-		// Determine the final byline value (you can define your own priority/condition here)
-		if (possibleBylines.length > 0) {
-			// For example, you can prioritize the byline from attributes over JS and meta tags
-			this._articleByline = possibleBylines.find((byline) => byline) || possibleBylines[0];
-			// console.log("Final article byline: " + this._articleByline);
+			this._articleByline = node.textContent.trim();
 			return true;
 		}
 
-		// console.log("No byline found.");
 		return false;
 	},
 
@@ -1159,6 +1075,50 @@ Readability.prototype = {
 			});
 	},
 
+	_getByLineValueFromScript: function (doc) {
+		var scripts = this._getAllNodesWithTag(doc, ["script"]);
+		console.log("Found " + scripts.length + " script tags in _getByLineValueFromScript function.");
+
+		var metadata;
+
+		this._forEachNode(scripts, function (scriptElement) {
+			if (!metadata && scriptElement.getAttribute("type") === "text/javascript") {
+				for (let i = 0; i < scripts.length; i++) {
+					let scriptContent = scripts[i].textContent;
+					// console.log("Inspecting script content:", scriptContent);
+					if (scriptContent.includes("window.digitalData")) {
+						metadata = {};
+						try {
+							// Extract the JSON object from the script content
+							let jsonString = scriptContent.match(/window\.digitalData\s*=\s*({[\s\S]*?});/);
+							if (jsonString && jsonString[1]) {
+								// Parse the JSON object
+								let digitalData = JSON.parse(jsonString[1]);
+
+								// Extract the primary author
+								if (digitalData.page && digitalData.page.attributes && digitalData.page.attributes.primaryAuthor) {
+									let primaryAuthor = digitalData.page.attributes.primaryAuthor;
+									console.log("Found primary author:", primaryAuthor);
+
+									if (primaryAuthor) {
+										if (typeof primaryAuthor === "string") {
+											metadata.byline = primaryAuthor.trim();
+										}
+										console.log("Primary author set in _getByLineValueFromScript:", metadata.byline);
+									}
+								}
+							}
+							return;
+						} catch (e) {
+							console.error("Error parsing script content:", e);
+						}
+					}
+				}
+			}
+		});
+		return metadata ? metadata : {};
+	},
+
 	_getJSONLD: function (doc) {
 		var scripts = this._getAllNodesWithTag(doc, ["script"]);
 		console.log("Found " + scripts.length + " script tags in _getJSONLD function.");
@@ -1169,7 +1129,6 @@ Readability.prototype = {
 			if (!metadata && jsonLdElement.getAttribute("type") === "application/ld+json") {
 				try {
 					var content = jsonLdElement.textContent.replace(/^\s*<!\[CDATA\[|\]\]>\s*$/g, "");
-					// console.log("JSON-LD content:", content);
 					var parsed = JSON.parse(content);
 					if (!parsed["@context"] || !parsed["@context"].match(/^https?\:\/\/schema\.org$/)) {
 						return;
@@ -1233,7 +1192,6 @@ Readability.prototype = {
 					console.log(err.message);
 				}
 			}
-			// console.log("Extracting primary author from script...");
 		});
 
 		this._forEachNode(scripts, function (scriptElement) {
@@ -1247,23 +1205,19 @@ Readability.prototype = {
 							// Extract the JSON object from the script content
 							let jsonString = scriptContent.match(/window\.digitalData\s*=\s*({[\s\S]*?});/);
 							if (jsonString && jsonString[1]) {
-								// console.log("Found JSON string:", jsonString[1]);
-
 								// Parse the JSON object
 								let digitalData = JSON.parse(jsonString[1]);
-								// console.log("Parsed JSON object:", digitalData);
 
 								// Extract the primary author
 								if (digitalData.page && digitalData.page.attributes && digitalData.page.attributes.primaryAuthor) {
 									let primaryAuthor = digitalData.page.attributes.primaryAuthor;
 									console.log("Found primary author:", primaryAuthor);
-									// return primaryAuthor;
-									// metadata.byline = primaryAuthor;
 
 									if (primaryAuthor) {
 										if (typeof primaryAuthor === "string") {
 											metadata.byline = primaryAuthor.trim();
 										}
+										console.log("Primary author set :", metadata.byline);
 									}
 								}
 							}
@@ -1341,7 +1295,13 @@ Readability.prototype = {
 			metadata.title = this._getArticleTitle();
 		}
 
+		if (!metadata.byline) {
+			this._getByLineValueFromScript(this._doc);
+			console.log("Byline value before setting from jsonld: ", metadata.byline);
+		}
+
 		metadata.byline = jsonld.byline || values["dc:creator"] || values["dcterm:creator"] || values["author"];
+		console.log("Byline value 2: ", metadata.byline);
 
 		metadata.excerpt =
 			jsonld.excerpt ||
@@ -1885,11 +1845,15 @@ Readability.prototype = {
 
 		var jsonLd = this._disableJSONLD ? {} : this._getJSONLD(this._doc);
 
+		var metadata1 = this._getByLineValueFromScript(this._doc);
+		console.log("Metadata1 byline : ", metadata1.byline);
+
 		this._removeScripts(this._doc);
 
 		this._prepDocument();
 
 		var metadata = this._getArticleMetadata(jsonLd);
+		console.log("Metadata byline : ", metadata.byline);
 		this._articleTitle = metadata.title;
 
 		var articleContent = this._grabArticle();
@@ -1907,10 +1871,12 @@ Readability.prototype = {
 		}
 
 		var textContent = articleContent.textContent;
+		console.log("Byline value before assignment: ", metadata.byline);
+
 		return {
 			fileName: metadata.fileName,
 			title: this._articleTitle,
-			byline: metadata.byline || this._articleByline,
+			byline: metadata1.byline || metadata.byline || this._articleByline,
 			dir: this._articleDir,
 			lang: this._articleLang,
 			content: this._serializer(articleContent),
