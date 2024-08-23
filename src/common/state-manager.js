@@ -6,23 +6,30 @@ globalThis.browser ??= chrome;
 
 export default class StateManager {
   constructor() {
-    // Options.getOptions().then(o => this.options = o)
     // "state" is stored in the browser session
     this.state = browser.storage.session
     if(!this.state.meta) this.state.meta = {} // metadata list (map; key: tab id)
   }
 
+  // the "content" represents the markdown to download. The text visible in the editor
   getContent = async () => (await this.state.get('content')).content
   setContent = async (content) => await this.state.set({content})
 
+  // the title represents the name of the file that will be downloaded
+  getTitle = async () => (await this.state.get('title')).title
+  setTitle = async (title) => await this.state.set({title})
+
+  // the image list contains a list of images to download, in the form of { <url>: <downloaded file name> }
   getImgList = async () => (await this.state.get('imgList'))?.imgList ?? {}
   setImgList = async (imgList) => await this.state.set({imgList})
 
+  // clear the current state
   clear = async () => {
     await this.state.clear()
     this.state.meta = {}
   }
 
+  // grab the content of the current page
   grabPageContent = async (tabId) => {
     // get the metadata for this tab
     let meta = await this.getMetadata(tabId)
@@ -32,6 +39,7 @@ export default class StateManager {
     return md
   }
 
+  // grab the content of the current selection (or start the selection client script)
   grabSelectionContent = async (tabId) => {
     // get the metadata for this tab
     let meta = await this.getMetadata(tabId)
@@ -50,6 +58,7 @@ export default class StateManager {
     }
   }
 
+  // get the metadata of the current page
   getMetadata = async(tabId) => {
     let meta = this.state.meta[tabId]
     if(meta) return meta

@@ -1,8 +1,24 @@
 function ensureBase(){
   // check for a existing base elements. If we don't find one, create and append a new one.
-  let baseEl = document.head.querySelector('base') ?? document.head.appendChild(document.createElement('base'));
-  // if the base element doesn't have a href, use the current location
-  if (!baseEl.getAttribute('href')) baseEl.setAttribute('href', window.location.href)
+  let baseEl = document.head.querySelector('base') ?? document.head.appendChild(document.createElement('base'))
+
+  // make sure the 'base' element always has a good 'href`
+  // attribute so that the DOMParser generates usable
+  // baseURI and documentURI properties when used in the
+  // background context.
+  let href = baseEl.getAttribute('href')
+  if (!href || !href.startsWith(window.location.origin)) baseEl.setAttribute('href', window.location.href)
+}
+
+function ensureTitle() {
+  // make sure a title tag exists so that pageTitle is not empty and
+  // a filename can be genarated.
+  if (document.head.getElementsByTagName('title').length == 0) {
+    let titleEl = document.createElement('title');
+    // prepate a good default text (the text displayed in the window title)
+    titleEl.innerText = document.title;
+    document.head.append(titleEl);
+  }
 }
 
 function addLatexToMathJax3() {
@@ -39,6 +55,7 @@ function markHiddenNodes(root) {
 }
 
 ensureBase()
+ensureTitle()
 addLatexToMathJax3()
 markHiddenNodes(document.documentElement)
 ''

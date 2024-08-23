@@ -46,6 +46,10 @@ export default class Markdownload {
     else {
       this.markdown = this.turndownService.turndown(temp.querySelector('main')?.innerHTML ?? temp.innerHTML)
     }
+
+    // strip out non-printing special characters which CodeMirror displays as a red dot
+    // see: https://codemirror.net/doc/manual.html#option_specialChars
+    this.markdown = this.markdown.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200f\u2028\u2029\ufeff\ufff9-\ufffc]/g, '');
   }
 
   initTurndownService(overrideOptions = {}) {
@@ -137,6 +141,12 @@ export default class Markdownload {
       header.className = '';
       header.outerHTML = header.outerHTML;  
     });
+
+    // Prevent Readability from removing the <html> element if has a 'class' attribute
+    // which matches removal criteria.
+    // Note: The document element is guaranteed to be the HTML tag because the 'text/html'
+    // mime type was used when the DOM was created.
+    if(el.documentElement) el.documentElement.removeAttribute('class')
 
     el.querySelectorAll('[markdownload-hidden]').forEach(e => e.parentNode?.removeChild(e))
   }

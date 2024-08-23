@@ -9,7 +9,16 @@ class Sidepanel {
   constructor(document) {
     this.document = document
     this.api = new StateManager()
+    this.windowId = null
+    this.editor = null
     Options.getOptions().then(async o => {this.options = o; await this.init()})
+  }
+
+  init = async () => {
+    // get the current window id
+    this.windowId = (await browser.windows.getCurrent({populate: true})).id
+
+    // initialize the editor
     this.editor = new EasyMDE({
       element: this.document.getElementById('content'),
       autoDownloadFontAwesome: false,
@@ -18,19 +27,22 @@ class Sidepanel {
       theme: 'markdownload',
       overlayMode: { mode: overlayMode }
     })
+
+    // todo: add a popup for highlighting?
     this.editor.codemirror.on("cursorActivity", (cm) => {
-      // todo: add a popup for highlighting?
       // console.log(cm.getSelection())
     })
-    this.windowId = null
-  }
 
-  init = async () => {
-    this.windowId = (await browser.windows.getCurrent({populate: true})).id
+    // setup the toolbar buttons
     await this.setupToolbar()
   }
 
+  download = async () => {
+    // todo: add the download functionality
+  }
+
   clear = async () => {
+    // make sure you really want to clear it
     if(confirm("Anything not saved will be lost.\nAre you sure you want to clear all text?")){
       await this.api.clear()
       this.editor.value('')
@@ -76,7 +88,7 @@ class Sidepanel {
 
     this.document.getElementById('capture-page').addEventListener('click', this.grabContent)
     this.document.getElementById('capture-selection').addEventListener('click', this.grabSelection)
-    // this.document.getElementById('download').addEventListener('click', this.download)
+    this.document.getElementById('download').addEventListener('click', this.download)
     this.document.getElementById('clear').addEventListener('click', this.clear)
     this.document.getElementById('help').addEventListener('click', this.help)
     this.document.getElementById('options').addEventListener('click', this.openOptions)
@@ -98,6 +110,7 @@ class Sidepanel {
 }
 
 (async () => {
+  // check that we have the right permissions and redirect if we don't
   const permissions = { origins: ["*://*/*"] }
   let hasPermission = await browser.permissions.contains(permissions)
   if(!hasPermission){
@@ -106,116 +119,4 @@ class Sidepanel {
   }
 
   const sidepanel = new Sidepanel(document)
-
-  // const api = new StateManager()
-  // const options = await Options.getOptions()
-  
-  // const editor = new EasyMDE({ //new TinyMDE.Editor({textarea: 'content'})
-  //   element: document.getElementById('content'),
-  //   autoDownloadFontAwesome: false,
-  //   spellChecker: false,
-  //   toolbar: false,
-  //   theme: 'markdownload',
-  //   overlayMode: { mode: overlayMode }
-  // })
-
-  // editor.codemirror.on("cursorActivity", (cm) => {
-  //   // todo: add a popup for highlighting?
-  //   // console.log(cm.getSelection())
-  // })
-
-  // setupToolbar()
-
-  // function setupToggle(optionName) {
-  //   let el = document.getElementById(optionName)
-  //   el.classList.toggle('active', options[optionName])
-  //   el.addEventListener('click', function() {
-  //     options[optionName] = !options[optionName]
-  //     this.classList.toggle('active', options[optionName])
-  //     options.save()
-  //   })
-  // }
-
-  // async function setupToolbar() {
-  //   setupToggle('useReadability')
-  //   setupToggle('includeTemplate')
-  //   setupToggle('downloadImages')
-
-  //   document.getElementById('capture-page').addEventListener('click', grabContent)
-  //   document.getElementById('capture-selection').addEventListener('click', grabSelection)
-  //   // document.getElementById('download').addEventListener('click', download)
-  //   document.getElementById('clear').addEventListener('click', clear)
-  //   document.getElementById('help').addEventListener('click', help)
-  //   document.getElementById('options').addEventListener('click', openOptions)
-
-  //   let previewToggle = document.getElementById('togglePreview')
-  //   previewToggle.addEventListener('click', () => {
-  //     previewToggle.classList.toggle('active', editor.isPreviewActive())
-  //     editor.togglePreview()
-  //   })
-  //   previewToggle.classList.toggle('active', !editor.isPreviewActive())
-
-
-  //   let settingsToggle = document.getElementById('toggleSettings')
-  //   settingsToggle.addEventListener('click', () => {
-  //     settingsToggle.classList.toggle('active')
-  //     document.querySelector('#settings.toolbar').classList.toggle('active')
-  //   })
-  // }
-
-  // let myWindowId
-
-  // async function clear() {
-  //   if(confirm("Anything not saved will be lost.\nAre you sure you want to clear all text?")){
-  //     await api.clear()
-  //     editor.value('')
-  //   }
-  // }
-
-  // async function addContent(content){
-  //   editor.codemirror.getDoc().replaceSelection(content)
-  //   await api.setContent(editor.value())
-  // }
-
-  // async function grabSelection() {
-  //   const md = await api.grabSelectionContent(await getCurrentTabId())
-  //   await addContent(options.useReadability ? md.readable.markdown : md.markdown)
-  // }
-
-  // async function grabContent() {
-  //   const md = await api.grabPageContent(await getCurrentTabId())
-  //   await addContent(options.useReadability ? md.readable.markdown : md.markdown)
-  // }
-
-  // function help() {
-  //   browser.tabs.create({url: "https://github.com/deathau/markdownload/blob/master/user-guide.md"})
-  // }
-  
-  // function openOptions() {
-  //   browser.tabs.create({url: "/options/options.html"})
-  // }
-
-  // async function getCurrentTabId() {
-  //   return (await browser.tabs.query({windowId: myWindowId, active: true}))[0].id
-  // }
-
-
-  // /*
-  // Update content when a new tab becomes active.
-  // */
-  // browser.tabs.onActivated.addListener(updateContent);
-
-  // /*
-  // Update content when a new page is loaded into a tab.
-  // */
-  // browser.tabs.onUpdated.addListener(updateContent);
-
-  /*
-  When the sidebar loads, get the ID of its window,
-  and update its content.
-  */
-  // browser.windows.getCurrent({populate: true}).then((windowInfo) => {
-  //   myWindowId = windowInfo.id;
-  //   // updateContent();
-  // })
 })()
