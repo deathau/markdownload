@@ -1,0 +1,145 @@
+@import url(/3rd-party/simple.min.css);
+@import url(/3rd-party/easymde.min.css);
+@import url(icons.css);
+@import url(easymde-theme.css);
+
+
+/* Global variables. */
+:root,
+::backdrop {
+  /* Default (light) theme */
+  --bg: oklch(100% 0 0);
+  --accent-bg: oklch(93% 0.033 292);
+  --text: oklch(25% 0 0);
+  --text-light: oklch(45% 0 0);
+  --border: oklch(65% 0.033 292);
+  --accent: oklch(50% 0.2 280);
+  --accent-hover: oklch(60% 0.2 280);
+  --accent-text: var(--bg);
+  --code: oklch(60% 0.2 340);
+  --preformatted: oklch(40% 0 0);
+  --disabled: oklch(95% 0 0);
+  --marked: oklch(90% 0.2 100);
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  :root,
+  ::backdrop {
+    color-scheme: dark;
+    --bg: oklch(25% 0 0);
+    --accent-bg: oklch(20% 0.02 280);
+    --toggle-bg: oklch(80% 0.025 280);
+    --text: oklch(95% 0 0);
+    --text-light: oklch(75% 0 0);
+    --accent: oklch(70% 0.2 280);
+    --accent-hover: oklch(80% 0.2 280);
+    --accent-text: var(--bg);
+    --code: oklch(70% 0.2 340);
+    --preformatted: oklch(85% 0 0);
+    --disabled: oklch(20% 0 0);
+  }
+}
+
+body {
+  font-size: 1rem;
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+header, footer{
+  width: 100%;
+}
+
+header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  background: var(--bg);
+}
+
+footer{
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+}
+
+main.markdownload, .EasyMDEContainer, .CodeMirror{
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#content, .TinyMDE, .EasyMDEContainer, .CodeMirror, .CodeMirror-scroll{
+  flex:1;
+}
+.EasyMDEContainer .CodeMirror {
+  border: none;
+}
+.editor-statusbar {
+  position: fixed;
+  bottom:0;
+  z-index: 1;
+  width: 100%;
+  background: var(--bg);
+}
+
+nav.toolbar {
+  display: flex;
+  flex-direction: row;
+  padding:1px;
+
+  &#settings {
+    height: 0;
+    transition: height .5s;
+    &.active {
+      height: auto;
+    } 
+  }
+  
+  span {
+    flex-grow: 1;
+  }
+
+  .button, .toggle {
+    width: 32px;
+    height: 32px;
+    margin: 1px;
+    text-align: center;
+    vertical-align: middle;
+    background: none;
+    color: var(--text);
+    border: none;
+    &:hover {
+      background-color: var(--accent-hover);
+      color: var(--accent-text);
+    }
+  }
+
+  .button {
+    padding: 0;
+    i{
+      font-size: 24px;
+    }
+  }
+
+  .toggle {
+    padding: 8px;
+    &.active {
+      padding:4px;
+      border: 4px solid var(--accent);
+      &:not(:hover){
+        color: var(--accent);
+      }
+    }
+    i {
+      font-size: 16px;
+    }
+  }
+}

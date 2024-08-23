@@ -1,0 +1,20 @@
+{
+  "name": "markdownload",
+  "version": "4.0.0",
+  "description": "A browser extension that works like a web clipper, but downloads articles in markdown format",
+  "main": "background.js",
+  "scripts": {
+    "npminstall": "npm install",
+    "build": "web-ext build",
+    "start:firefoxdeveloper": "web-ext run -s ./src -f firefoxdeveloperedition -u https://en.wikipedia.org/wiki/Special:Random --bc",
+    "start:win:chromedev": "web-ext run -s ./src -t chromium --chromium-binary \"C:\\Program Files\\Google\\Chrome Dev\\Application\\chrome.exe\" -u https://en.wikipedia.org/wiki/Special:Random --bc",
+    "start:win:wavebox": "web-ext run -s ./src -t chromium --chromium-binary %localappdata%/WaveboxApp/Application/wavebox.exe",
+    "start:win11:android": "adb connect 127.0.0.1:58526 && web-ext run -s ./src -t firefox-android --adb-device 127.0.0.1:58526 --firefox-apk org.mozilla.fenix",
+    "start:mac:wavebox": "web-ext run -s ./src -t chromium --chromium-binary=/Applications/Wavebox.app/Contents/MacOS/wavebox"
+  },
+  "author": "death.au",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "web-ext": "^8.2.0"
+  }
+}

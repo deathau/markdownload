@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html data-theme="light">
+  <head>
+    <meta name="color-scheme" content="dark light">
+    <title>Markdownload</title>
+    <link rel="stylesheet" href="/css/style.css">
+  </head>
+  <body>
+    <main class="markdownload">
+      <header>
+        <nav class="toolbar">
+          <a href="#" class="button" id="capture-page" title="Capture Page"><i class="icon-capture-page"></i></a>
+          <a href="#" class="button" id="capture-selection" title="Capture Selection"><i class="icon-capture-text"></i></a>
+          <a href="#" class="toggle" id="togglePreview" title="Toggle edit/preview view"><i class="icon-code"></i></a>
+          <span></span>
+          <a href="#" class="button" id="toggleSettings" title="Settings"><i class="icon-settings-toggle"></i></a>
+          <span></span>
+          <a href="#" class="button" id="clear" title="Clear all"><i class="icon-clear"></i></a>
+          <a href="#" class="button" id="download" title="Download"><i class="icon-download"></i></a>
+          <a href="#" class="button" id="help" title="Help"><i class="icon-help"></i></a>
+        </nav>
+        <nav class="toolbar" id="settings">
+          <a href="#" class="toggle" id="useReadability" title="Use Readability to cut out extranuous markup"><i class="icon-readability"></i></a>
+          <a href="#" class="toggle" id="includeTemplate" title="Include front/back-matter template"><i class="icon-frontmatter"></i></a>
+          <a href="#" class="toggle" id="downloadImages" title="Include images in download"><i class="icon-images"></i></a>
+          <span></span>
+          <a href="#" class="button" id="options" title="More options"><i class="icon-cog"></i></a>
+        </nav>
+        <input type="text" id="title" placeholder="Title" />
+      </header>
+      <textarea id="content"></textarea>
+    </main>
+    <script src="sidepanel.js" type="module"></script>
+  </body>
+</html>

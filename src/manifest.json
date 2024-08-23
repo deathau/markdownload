@@ -1,0 +1,39 @@
+{
+  "name": "Markdownload MV3",
+  "version": "4.0.0",
+  "manifest_version": 3,
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "debugger",
+    "sidePanel"
+  ],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
+  "action": {
+    "default_title": "Markdownload"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "sidebar_action": {
+    "default_title" : "Markdownload",
+    "default_panel": "sidepanel/welcome.html"
+  },
+  "background": {
+    "scripts": ["background/background.js"],
+    "service_worker": "background/background.js"
+  },
+  "browser_specific_settings": {
+    "gecko" :{
+      "id": "{1c5e4c6f-5530-49a3-b216-31ce7d744db0}",
+      "strict_min_version": "121.0a1"
+    },
+    "gecko_android": {
+      "strict_min_version": "121.0a1"
+    }
+  },
+  "minimum_chrome_version": "121"
+}

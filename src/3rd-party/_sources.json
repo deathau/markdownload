@@ -1,0 +1,9 @@
+{
+   "https://unpkg.com/easymde@2.18.0/dist/easymde.min.css": {"path":"/dist/easymde.min.css","type":"file","contentType":"text/css","integrity":"sha384-uqD/OYCNfagd1EgXMgl5QedTD5K+B3e9b8GYo/41t7+Serf7CBxvl+tU1gHd+qd1","lastModified":"Sat, 26 Oct 1985 08:15:00 GMT","size":12923}
+  ,"https://unpkg.com/easymde@2.18.0/dist/easymde.min.js": {"path":"/dist/easymde.min.js","type":"file","contentType":"application/javascript","integrity":"sha384-KtB38COewxfrhJxoN2d+olxJAeT08LF8cVZ6DQ8Poqu89zIptqO6zAXoIxpGNWYE","lastModified":"Sat, 26 Oct 1985 08:15:00 GMT","size":326569}
+  ,"https://unpkg.com/@mozilla/readability@0.5.0/Readability.js": {"path":"/Readability.js","type":"file","contentType":"application/javascript","integrity":"sha384-9PxKsCWFyeD5MBU9O+HvCer7oEKjk70414DZpYxnuOP7mVMJfd1TXIuHGaKiyRTG","lastModified":"Sat, 26 Oct 1985 08:15:00 GMT","size":84033}
+  ,"https://unpkg.com/simpledotcss@2.3.1/simple.min.css": {"path":"/simple.min.css","type":"file","contentType":"text/css","integrity":"sha384-HMGsCv5Lq6X1ZOcjIOJ7l4+vsd85x7ZaBKyDnL7aNdac5hux7LCt0qstmK6ILfjT","lastModified":"Sat, 26 Oct 1985 08:15:00 GMT","size":8658}
+  ,"https://unpkg.com/turndown-plugin-gfm@1.0.2/lib/turndown-plugin-gfm.browser.es.js": {"path":"/lib/turndown-plugin-gfm.browser.es.js","type":"file","contentType":"application/javascript","integrity":"sha384-/sfh8S4uOD0CFrvmq0zcAWtN8yA0OaBf29OeQAu1NM6u/vrwR7OR7LwUPA4pc9wi","lastModified":"Sat, 26 Oct 1985 08:15:00 GMT","size":4005}
+  ,"https://unpkg.com/turndown@7.2.0/lib/turndown.browser.es.js": {"path":"/lib/turndown.browser.es.js","type":"file","contentType":"application/javascript","integrity":"sha384-Iny2ZTWhiyrVWObA/Z7/2fKdMi0DHkSfSFUsbaNCh6oRcPtYj3wBmEL7CdEdjqWh","lastModified":"Sat, 26 Oct 1985 08:15:00 GMT","size":25062}
+
+}
