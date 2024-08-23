@@ -722,7 +722,7 @@ async function getArticleFromDom(domString) {
 
   dom.body.querySelectorAll('[class*=highlight-text],[class*=highlight-source]')?.forEach(codeSource => {
     const language = codeSource.className.match(/highlight-(?:text|source)-([a-z0-9]+)/)?.[1]
-    if (codeSource.firstChild.nodeName == "PRE") {
+    if (codeSource.firstChild && codeSource.firstChild.nodeName == "PRE") {
       codeSource.firstChild.id = `code-lang-${language}`
     }
   });
@@ -738,7 +738,7 @@ async function getArticleFromDom(domString) {
   });
 
   dom.body.querySelectorAll('.codehilite > pre')?.forEach(codeSource => {
-    if (codeSource.firstChild.nodeName !== 'CODE' && !codeSource.className.includes('language')) {
+    if (codeSource.firstChild && codeSource.firstChild.nodeName !== 'CODE' && !codeSource.className.includes('language')) {
       codeSource.id = `code-lang-text`;
     }
   });
