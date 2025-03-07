@@ -38,7 +38,7 @@
       "128": "icons/appicon-128x128.png"
     }
   },
-  "sidebar_action": {
+  "action": {
     "default_title" : "Markdownload",
     "default_panel": "sidepanel/welcome.html",
     "default_icon": {
@@ -49,7 +49,6 @@
     }
   },
   "background": {
-    "scripts": ["background/background.js"],
     "service_worker": "background/background.js"
   },
   "browser_specific_settings": {
