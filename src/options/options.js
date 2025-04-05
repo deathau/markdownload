@@ -99,7 +99,7 @@ const setCurrentChoice = result => {
     if (!browser.downloads) {
         options.downloadMode = 'contentLink';
         document.querySelectorAll("[name='downloadMode']").forEach(el => el.disabled = true)
-        document.querySelector('#downloadMode p').innerText = "The Downloas API is unavailable in this browser."
+        document.querySelector('#downloadMode p').innerText = "The Downloads API is unavailable in this browser."
     }
 
     const downloadImages = options.downloadImages && options.downloadMode == 'downloadsApi';
@@ -139,7 +139,7 @@ const setCurrentChoice = result => {
     setCheckedValue(document.querySelectorAll("[name='downloadMode']"), options.downloadMode);
     // setCheckedValue(document.querySelectorAll("[name='obsidianPathType']"), options.obsidianPathType);
 
-    refereshElements();
+    refreshElements();
 }
 
 const restoreOptions = () => {
@@ -161,7 +161,7 @@ const show = (el, show) => {
     el.style.opacity = show ? "1" : "0";
 }
 
-const refereshElements = () => {
+const refreshElements = () => {
     document.getElementById("downloadModeGroup").querySelectorAll('.radio-container,.checkbox-container,.textbox-container').forEach(container => {
         show(container, options.downloadMode == 'downloadsApi')
     });
@@ -204,7 +204,7 @@ const inputChange = e => {
                 browser.contextMenus.removeAll()
                 createMenus()
                 save();            
-                refereshElements();
+                refreshElements();
             };
             fr.readAsText(e.target.files[0])
         }
@@ -218,7 +218,7 @@ const inputChange = e => {
             }
     
             save();
-            refereshElements();
+            refreshElements();
         }
     }
 }

@@ -7,7 +7,7 @@ tl;dr: We don't collect anything. Any information we clip from websites remains 
 
 ## Information Collection and Use
 This extension reads data on a website you are visiting when you click the button. The URL, metadata and content are clipped and fed
-through third-party javascript libraries to transofrm it into the Markdown you see in the preview.
+through third-party javascript libraries to transform it into the Markdown you see in the preview.
 
 None of this data is collected or sent back to any server. Any files you download or text you copy from the extension remains on your
 machine and none of it is collected by me.

@@ -5,10 +5,10 @@ function notifyExtension() {
 
 function getHTMLOfDocument() {
     // make sure a title tag exists so that pageTitle is not empty and
-    // a filename can be genarated.
+    // a filename can be generated.
     if (document.head.getElementsByTagName('title').length == 0) {
         let titleEl = document.createElement('title');
-        // prepate a good default text (the text displayed in the window title)
+        // prepare a good default text (the text displayed in the window title)
         titleEl.innerText = document.title;
         document.head.append(titleEl);
     }
