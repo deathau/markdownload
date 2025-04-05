@@ -31,10 +31,10 @@ This converts the current tab's content as Markdown and copies it to the clipboa
 This converts the  currently selected section of the web page as Markdown and copies it to the clipboard, so you can paste it in another program
 
 ### Copy Tab URL as Markdown Link
-Copys the current tab's url and title as a Markdown link to be pasted into another Markdown document
+Copies the current tab's url and title as a Markdown link to be pasted into another Markdown document
 
 ### Copy Selected Tabs as Markdown Link
-Copys all selected tabs into Markdown link to be pasted into another Markdown document
+Copies all selected tabs into Markdown link to be pasted into another Markdown document
 
 ### Copy Link as Markdown
 **Only when right-clicking on a link**  
