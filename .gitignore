@@ -3,3 +3,8 @@ xcode/MarkDownload - Markdown Web Clipper/MarkDownload - Markdown Web Clipper.xc
 xcode/MarkDownload - Markdown Web Clipper/MarkDownload - Markdown Web Clipper.xcodeproj/xcuserdata
 .DS_Store
 node_modules
+
+## IDEs are developer-specific
+.vscode/
+.idea/
+.DS_Store
