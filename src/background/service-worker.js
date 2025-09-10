@@ -339,7 +339,7 @@ async function createMenus() {
 
 // Message handling from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('MarkDownload: Received message:', message.type, 'from tab:', sender.tab?.id);
+  console.log('MarkDownload: Received message:', message.type, 'from tab:', sender.tab?.id, 'message.tabId:', message?.tabId);
   
   // Handle message asynchronously
   (async () => {
@@ -360,13 +360,16 @@ async function handleMessage(message, sender, sendResponse) {
     if (message.type === "clip") {
       console.log('MarkDownload: Processing clip message');
       
-      if (!sender.tab?.id) {
+      // Prefer tabId from message (popup), fallback to sender.tab.id
+      const tabId = message.tabId || sender.tab?.id;
+      if (!tabId) {
         sendResponse({ error: 'No valid tab ID' });
         return;
       }
+      console.log('MarkDownload: Using tab ID for clip:', tabId);
       
       // Use complete processing in content script (including markdown conversion)
-      const result = await getCompleteMarkdownFromContent(sender.tab.id, message.clipSelection);
+      const result = await getCompleteMarkdownFromContent(tabId, message.clipSelection);
       
       if (!result) {
         sendResponse({ error: 'Failed to process complete article' });
@@ -376,17 +379,20 @@ async function handleMessage(message, sender, sendResponse) {
       // Format folder
       const mdClipsFolder = await formatMdClipsFolder(result.article);
 
-      // Send response back
-      sendResponse({
+      // Send response back (for request) and also broadcast for popup listeners
+      const responsePayload = {
         type: "display.md",
         markdown: result.markdown,
         article: result.article,
         imageList: result.imageList,
         mdClipsFolder: mdClipsFolder
-      });
+      };
+      try { sendResponse(responsePayload); } catch {}
+      try { chrome.runtime.sendMessage(responsePayload); } catch {}
     } else if (message.type === "download") {
       console.log('MarkDownload: Processing download message');
-      await downloadMarkdown(message.markdown, message.title, sender.tab.id, message.imageList, message.mdClipsFolder);
+      const tabId = message.tabId || sender.tab?.id;
+      await downloadMarkdown(message.markdown, message.title, tabId, message.imageList, message.mdClipsFolder);
       sendResponse({ success: true });
     } else {
       sendResponse({ error: 'Unknown message type: ' + message.type });
@@ -547,27 +553,16 @@ async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsF
   const options = await getOptions();
   
   if (options.downloadMode == 'downloadsApi' && chrome.downloads) {
-    const url = URL.createObjectURL(new Blob([markdown], {
-      type: "text/markdown;charset=utf-8"
-    }));
+    // Use data URL directly; createObjectURL is not available in MV3 service worker
+    const dataUrl = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(markdown);
 
     try {
       if (mdClipsFolder && !mdClipsFolder.endsWith('/')) mdClipsFolder += '/';
-      
       const id = await chrome.downloads.download({
-        url: url,
+        url: dataUrl,
         filename: mdClipsFolder + title + ".md",
         saveAs: options.saveAs
       });
-
-      // Handle download completion
-      const downloadListener = (delta) => {
-        if (delta.id === id && delta.state && delta.state.current == "complete") {
-          chrome.downloads.onChanged.removeListener(downloadListener);
-          URL.revokeObjectURL(url);
-        }
-      };
-      chrome.downloads.onChanged.addListener(downloadListener);
     } catch (err) {
       console.error("MarkDownload: Download failed", err);
     }

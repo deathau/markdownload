@@ -97,40 +97,45 @@ const showOrHideClipOption = selection => {
 }
 
 const clipSite = id => {
-    return browser.tabs.executeScript(id, { code: "getSelectionAndDom()" })
-        .then((result) => {
-            if (result && result[0]) {
-                showOrHideClipOption(result[0].selection);
-                let message = {
-                    type: "clip",
-                    dom: result[0].dom,
-                    selection: result[0].selection
-                }
-                return browser.storage.sync.get(defaultOptions).then(options => {
-                    browser.runtime.sendMessage({
-                        ...message,
-                        ...options
-                    });
-                }).catch(err => {
-                    console.error(err);
-                    showError(err)
-                    return browser.runtime.sendMessage({
-                        ...message,
-                        ...defaultOptions
-                    });
-                }).catch(err => {
-                    console.error(err);
-                    showError(err)
-                });
+    return chrome.scripting.executeScript({
+        target: { tabId: id },
+        func: () => {
+            return getSelectionAndDom();
+        }
+    }).then((result) => {
+        if (result && result[0] && result[0].result) {
+            showOrHideClipOption(result[0].result.selection);
+            let message = {
+                type: "clip",
+                dom: result[0].result.dom,
+                selection: result[0].result.selection,
+                tabId: id
             }
-        }).catch(err => {
-            console.error(err);
-            showError(err)
-        });
+            return chrome.storage.sync.get(defaultOptions).then(options => {
+                chrome.runtime.sendMessage({
+                    ...message,
+                    ...options
+                });
+            }).catch(err => {
+                console.error(err);
+                showError(err)
+                return chrome.runtime.sendMessage({
+                    ...message,
+                    ...defaultOptions
+                });
+            }).catch(err => {
+                console.error(err);
+                showError(err)
+            });
+        }
+    }).catch(err => {
+        console.error(err);
+        showError(err)
+    });
 }
 
-// inject the necessary scripts
-browser.storage.sync.get(defaultOptions).then(options => {
+// Initialize popup
+chrome.storage.sync.get(defaultOptions).then(options => {
     checkInitialSettings(options);
     
     document.getElementById("selected").addEventListener("click", (e) => {
@@ -150,49 +155,42 @@ browser.storage.sync.get(defaultOptions).then(options => {
         toggleDownloadImages(options);
     });
     
-    return browser.tabs.query({
+    return chrome.tabs.query({
         currentWindow: true,
         active: true
     });
 }).then((tabs) => {
     var id = tabs[0].id;
     var url = tabs[0].url;
-    browser.tabs.executeScript(id, {
-        file: "/browser-polyfill.min.js"
-    })
-    .then(() => {
-        return browser.tabs.executeScript(id, {
-            file: "/contentScript/contentScript.js"
-        });
-    }).then( () => {
-        console.info("Successfully injected MarkDownload content script");
-        return clipSite(id);
-    }).catch( (error) => {
-        console.error(error);
-        showError(error);
-    });
+    
+    // Content script is already injected via manifest, just call clipSite
+    console.info("MarkDownload popup: Content script should be available");
+    return clipSite(id);
+}).catch( (error) => {
+    console.error(error);
+    showError(error);
 });
 
 // listen for notifications from the background page
-browser.runtime.onMessage.addListener(notify);
+chrome.runtime.onMessage.addListener(notify);
 
 //function to send the download message to the background page
 function sendDownloadMessage(text) {
     if (text != null) {
-
-        return browser.tabs.query({
+        return chrome.tabs.query({
             currentWindow: true,
             active: true
         }).then(tabs => {
+            const activeTab = tabs[0];
             var message = {
                 type: "download",
                 markdown: text,
                 title: document.getElementById("title").value,
-                tab: tabs[0],
+                tabId: activeTab?.id,
                 imageList: imageList,
                 mdClipsFolder: mdClipsFolder
             };
-            return browser.runtime.sendMessage(message);
+            return chrome.runtime.sendMessage(message);
         });
     }
 }
