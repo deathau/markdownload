@@ -801,9 +801,28 @@ async function sendToObsidian(info, tab) {
     
     console.log('MarkDownload: Opening Obsidian URI (clipboard method):', obsidianUri);
     
-    // Open Obsidian URI using chrome.tabs.create (Manifest V3 compatible)
-    await chrome.tabs.create({ url: obsidianUri });
-    console.log('MarkDownload: Obsidian URI opened successfully');
+    // Try to open Obsidian URI directly
+    try {
+      // Method 1: Try to update current tab (most direct)
+      await chrome.tabs.update(tab.id, { url: obsidianUri });
+      console.log('MarkDownload: Obsidian URI opened successfully via tab update');
+    } catch (error) {
+      console.log('MarkDownload: Tab update failed, trying alternative method:', error);
+      
+      // Method 2: Fallback to creating new tab
+      try {
+        await chrome.tabs.create({ url: obsidianUri });
+        console.log('MarkDownload: Obsidian URI opened successfully via new tab');
+      } catch (error2) {
+        console.error('MarkDownload: All methods failed:', error2);
+        
+        // Method 3: Final fallback - show notification with manual instructions
+        await executeScript(tab.id, (uri) => {
+          alert('MarkDownload: Content copied to clipboard!\n\nTo open in Obsidian:\n1. Open Obsidian\n2. Create new note\n3. Paste content (Ctrl+V)\n\nOr click OK to try opening Obsidian URI again.');
+          window.open(uri, '_blank');
+        }, [obsidianUri]);
+      }
+    }
     
     console.log('MarkDownload: Obsidian operation completed');
   } catch (error) {
