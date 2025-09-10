@@ -119,7 +119,80 @@ function validateUri(href, baseURI) {
   return href;
 }
 
-// Helper functions moved to content script
+// Helper functions for Obsidian integration
+function generateValidFileName(title, disallowedChars = null) {
+  if (!title) return title;
+  title = title + '';
+  
+  var illegalRe = /[\/\?<>\\:\*\|":]/g;
+  var name = title.replace(illegalRe, "").replace(new RegExp('\u00A0', 'g'), ' ')
+      .replace(new RegExp(/\s+/, 'g'), ' ')
+      .trim();
+
+  if (disallowedChars) {
+    for (let c of disallowedChars) {
+      if (`[\\^$.|?*+()`.includes(c)) c = `\\${c}`;
+      name = name.replace(new RegExp(c, 'g'), '');
+    }
+  }
+  
+  return name;
+}
+
+function textReplace(string, article, disallowedChars = null) {
+  for (const key in article) {
+    if (article.hasOwnProperty(key) && key != "content") {
+      let s = (article[key] || '') + '';
+      if (s && disallowedChars) s = generateValidFileName(s, disallowedChars);
+
+      string = string.replace(new RegExp('{' + key + '}', 'g'), s)
+        .replace(new RegExp('{' + key + ':lower}', 'g'), s.toLowerCase())
+        .replace(new RegExp('{' + key + ':upper}', 'g'), s.toUpperCase())
+        .replace(new RegExp('{' + key + ':kebab}', 'g'), s.replace(/ /g, '-').toLowerCase())
+        .replace(new RegExp('{' + key + ':mixed-kebab}', 'g'), s.replace(/ /g, '-'))
+        .replace(new RegExp('{' + key + ':snake}', 'g'), s.replace(/ /g, '_').toLowerCase())
+        .replace(new RegExp('{' + key + ':mixed_snake}', 'g'), s.replace(/ /g, '_'))
+        .replace(new RegExp('{' + key + ':obsidian-cal}', 'g'), s.replace(/ /g, '-').replace(/-{2,}/g, "-"))
+        .replace(new RegExp('{' + key + ':camel}', 'g'), s.replace(/ ./g, (str) => str.trim().toUpperCase()).replace(/^./, (str) => str.toLowerCase()))
+        .replace(new RegExp('{' + key + ':pascal}', 'g'), s.replace(/ ./g, (str) => str.trim().toUpperCase()).replace(/^./, (str) => str.toUpperCase()));
+    }
+  }
+
+  // Replace date formats
+  const now = new Date();
+  const dateRegex = /{date:(.+?)}/g;
+  const matches = string.match(dateRegex);
+  if (matches && matches.forEach) {
+    matches.forEach(match => {
+      const format = match.substring(6, match.length - 1);
+      if (typeof moment !== 'undefined') {
+        const dateString = moment(now).format(format);
+        string = string.replaceAll(match, dateString);
+      } else {
+        // Fallback if moment is not available
+        string = string.replaceAll(match, now.toISOString());
+      }
+    });
+  }
+
+  // Replace keywords
+  const keywordRegex = /{keywords:?(.*)?}/g;
+  const keywordMatches = string.match(keywordRegex);
+  if (keywordMatches && keywordMatches.forEach) {
+    keywordMatches.forEach(match => {
+      let seperator = match.substring(10, match.length - 1);
+      try {
+        seperator = JSON.parse(JSON.stringify(seperator).replace(/\\\\/g, '\\'));
+      } catch { }
+      const keywordsString = (article.keywords || []).join(seperator);
+      string = string.replace(new RegExp(match.replace(/\\/g, '\\\\'), 'g'), keywordsString);
+    });
+  }
+
+  // Replace anything left in curly braces
+  string = string.replace(/{(.*?)}/g, '');
+  return string;
+}
 
 // Image processing functions moved to content script
 
@@ -331,7 +404,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   console.log('MarkDownload: Tab object:', tab);
   
   try {
-    if (info.menuItemId.startsWith("copy-markdown")) {
+    if (info.menuItemId === "copy-markdown-obsidian" || info.menuItemId === "copy-markdown-obsall") {
+      console.log('MarkDownload: Routing to sendToObsidian');
+      await sendToObsidian(info, tab);
+    } else if (info.menuItemId.startsWith("copy-markdown")) {
       console.log('MarkDownload: Routing to copyMarkdownFromContext');
       await copyMarkdownFromContext(info, tab);
     } else if (info.menuItemId === "download-markdown-alltabs") {
@@ -371,9 +447,9 @@ chrome.commands.onCommand.addListener((command) => {
     } else if (command === "copy_tab_as_markdown_link") {
       copyTabAsMarkdownLink(tab);
     } else if (command === "copy_selection_to_obsidian") {
-      copyMarkdownFromContext({ menuItemId: "copy-markdown-obsidian" }, tab);
+      sendToObsidian({ menuItemId: "copy-markdown-obsidian" }, tab);
     } else if (command === "copy_tab_to_obsidian") {
-      copyMarkdownFromContext({ menuItemId: "copy-markdown-obsall" }, tab);
+      sendToObsidian({ menuItemId: "copy-markdown-obsall" }, tab);
     }
   });
 });
@@ -662,6 +738,76 @@ async function toggleSetting(setting, options = null) {
     chrome.contextMenus.update("toggle-downloadImages", {
       checked: options.downloadImages
     });
+  }
+}
+
+// Obsidian integration function (using clipboard method like original)
+async function sendToObsidian(info, tab) {
+  try {
+    console.log('MarkDownload: Sending to Obsidian, menuItemId:', info.menuItemId);
+    
+    // Get complete markdown result from content script
+    const result = await getCompleteMarkdownFromContent(tab.id, info.menuItemId === "copy-markdown-obsidian");
+    if (!result) {
+      console.error('MarkDownload: Failed to get complete markdown result for Obsidian');
+      return;
+    }
+    
+    console.log('MarkDownload: Obsidian result retrieved, title:', result.title, 'markdown length:', result.markdown?.length || 0);
+    
+    if (!result.markdown) {
+      console.error('MarkDownload: No markdown content received for Obsidian');
+      return;
+    }
+    
+    // Get Obsidian options
+    const options = await getOptions();
+    if (!options.obsidianIntegration) {
+      console.error('MarkDownload: Obsidian integration not enabled');
+      return;
+    }
+    
+    // Step 1: Copy markdown to clipboard (like original implementation)
+    console.log('MarkDownload: Copying markdown to clipboard for Obsidian');
+    await executeScript(tab.id, (markdown) => {
+      console.log('MarkDownload ContentScript: Copying markdown to clipboard for Obsidian');
+      return copyToClipboard(markdown);
+    }, [result.markdown]);
+    
+    // Step 2: Prepare Obsidian URI using clipboard method
+    const vault = options.obsidianVault || '';
+    const folder = options.obsidianFolder || '';
+    
+    // Format folder like original implementation
+    let obsidianFolder = '';
+    if (folder) {
+      // Use text replacement and filename generation like original
+      obsidianFolder = result.article ? 
+        textReplace(folder, result.article, options.disallowedChars) : folder;
+      obsidianFolder = obsidianFolder.split('/').map(s => generateValidFileName(s, options.disallowedChars)).join('/');
+      if (!obsidianFolder.endsWith('/')) obsidianFolder += '/';
+    }
+    
+    // Generate filename like original
+    const filename = generateValidFileName(result.title, options.disallowedChars);
+    const filepath = obsidianFolder + filename;
+    
+    // Create Obsidian URI using clipboard method (like original)
+    const obsidianUri = 'obsidian://advanced-uri?' + 
+      'vault=' + encodeURIComponent(vault) +
+      '&clipboard=true' +
+      '&mode=new' +
+      '&filepath=' + encodeURIComponent(filepath);
+    
+    console.log('MarkDownload: Opening Obsidian URI (clipboard method):', obsidianUri);
+    
+    // Open Obsidian URI using chrome.tabs.create (Manifest V3 compatible)
+    await chrome.tabs.create({ url: obsidianUri });
+    console.log('MarkDownload: Obsidian URI opened successfully');
+    
+    console.log('MarkDownload: Obsidian operation completed');
+  } catch (error) {
+    console.error('MarkDownload: Send to Obsidian failed:', error);
   }
 }
 
