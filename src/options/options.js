@@ -47,20 +47,10 @@ const save = () => {
             chrome.contextMenus.update("toggle-includeTemplate", {
                 checked: options.includeTemplate
             });
-            try {
-                chrome.contextMenus.update("tabtoggle-includeTemplate", {
-                    checked: options.includeTemplate
-                });
-            } catch { }
             
             chrome.contextMenus.update("toggle-downloadImages", {
                 checked: options.downloadImages
             });
-            try {
-                chrome.contextMenus.update("tabtoggle-downloadImages", {
-                    checked: options.downloadImages
-                });
-            } catch { }
         })
         .then(() => {
             document.querySelectorAll(".status").forEach(statusEl => {
@@ -202,7 +192,8 @@ const inputChange = e => {
                 options = JSON.parse(lines);
                 setCurrentChoice(options);
                 chrome.contextMenus.removeAll()
-                createMenus()
+                // Notify service worker to recreate menus
+                chrome.runtime.sendMessage({ type: "recreateMenus" }).catch(() => {});
                 save();            
                 refereshElements();
             };
@@ -213,7 +204,10 @@ const inputChange = e => {
             options[key] = value;
 
             if (key == "contextMenus") {
-                if (value) { createMenus() }
+                if (value) { 
+                    // Notify service worker to recreate menus
+                    chrome.runtime.sendMessage({ type: "recreateMenus" }).catch(() => {});
+                }
                 else { chrome.contextMenus.removeAll() }
             }
     

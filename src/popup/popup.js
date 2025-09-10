@@ -49,7 +49,16 @@ const toggleClipSelection = options => {
     options.clipSelection = !options.clipSelection;
     document.querySelector("#selected").classList.toggle("checked");
     document.querySelector("#document").classList.toggle("checked");
-    chrome.storage.sync.set(options).then(() => clipSite()).catch((error) => {
+    chrome.storage.sync.set(options).then(() => {
+        // Get current tab ID and call clipSite
+        chrome.tabs.query({ currentWindow: true, active: true }).then(tabs => {
+            if (tabs[0]) {
+                clipSite(tabs[0].id);
+            }
+        }).catch(error => {
+            console.error('Failed to get tab ID:', error);
+        });
+    }).catch((error) => {
         console.error(error);
     });
 }
@@ -61,12 +70,14 @@ const toggleIncludeTemplate = options => {
         chrome.contextMenus.update("toggle-includeTemplate", {
             checked: options.includeTemplate
         });
-        try {
-            chrome.contextMenus.update("tabtoggle-includeTemplate", {
-                checked: options.includeTemplate
-            });
-        } catch { }
-        return clipSite()
+        // Get current tab ID and call clipSite
+        chrome.tabs.query({ currentWindow: true, active: true }).then(tabs => {
+            if (tabs[0]) {
+                clipSite(tabs[0].id);
+            }
+        }).catch(error => {
+            console.error('Failed to get tab ID:', error);
+        });
     }).catch((error) => {
         console.error(error);
     });
@@ -79,11 +90,6 @@ const toggleDownloadImages = options => {
         chrome.contextMenus.update("toggle-downloadImages", {
             checked: options.downloadImages
         });
-        try {
-            chrome.contextMenus.update("tabtoggle-downloadImages", {
-                checked: options.downloadImages
-            });
-        } catch { }
     }).catch((error) => {
         console.error(error);
     });

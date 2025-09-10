@@ -220,7 +220,8 @@ async function createMenus() {
   }
 
   if (options.contextMenus) {
-    const menuItems = [
+    // Page context menus
+    const pageMenuItems = [
       {
         id: "download-markdown-alltabs",
         title: "Download All Tabs as Markdown",
@@ -272,6 +273,36 @@ async function createMenus() {
         contexts: ["all"]
       },
       {
+        id: "copy-tab-as-markdown-link-all",
+        title: "Copy All Tab URLs as Markdown Link List",
+        contexts: ["all"]
+      },
+      {
+        id: "copy-tab-as-markdown-link-selected",
+        title: "Copy Selected Tab URLs as Markdown Link List",
+        contexts: ["all"]
+      }
+    ];
+
+    // Add Obsidian integration menus if enabled
+    if (options.obsidianIntegration) {
+      pageMenuItems.push(
+        {
+          id: "copy-markdown-obsidian",
+          title: "Send Text selection to Obsidian",
+          contexts: ["selection"]
+        },
+        {
+          id: "copy-markdown-obsall", 
+          title: "Send Tab to Obsidian",
+          contexts: ["all"]
+        }
+      );
+    }
+
+    // Add separator and toggle options
+    pageMenuItems.push(
+      {
         id: "separator-2", 
         type: "separator",
         contexts: ["all"]
@@ -290,36 +321,18 @@ async function createMenus() {
         contexts: ["all"],
         checked: options.downloadImages
       }
-    ];
+    );
 
-    if (options.obsidianIntegration) {
-      menuItems.splice(-2, 0, 
-        {
-          id: "copy-markdown-obsidian",
-          title: "Send Text selection to Obsidian",
-          contexts: ["selection"]
-        },
-        {
-          id: "copy-markdown-obsall", 
-          title: "Send Tab to Obsidian",
-          contexts: ["all"]
-        },
-        {
-          id: "separator-3",
-          type: "separator",
-          contexts: ["all"]
-        }
-      );
-    }
-
-    for (const item of menuItems) {
+    // Create page context menus
+    for (const item of pageMenuItems) {
       try {
         await chrome.contextMenus.create(item);
-        console.log('MarkDownload: Created menu item:', item.id, '- Title:', item.title);
+        console.log('MarkDownload: Created page menu item:', item.id, '- Title:', item.title);
       } catch (e) {
-        console.warn('MarkDownload: Failed to create menu item:', item.id, e);
+        console.warn('MarkDownload: Failed to create page menu item:', item.id, e);
       }
     }
+    
     console.log('MarkDownload: Context menus created successfully');
     
     // Test: List all created menus for debugging
@@ -393,6 +406,10 @@ async function handleMessage(message, sender, sendResponse) {
       console.log('MarkDownload: Processing download message');
       const tabId = message.tabId || sender.tab?.id;
       await downloadMarkdown(message.markdown, message.title, tabId, message.imageList, message.mdClipsFolder);
+      sendResponse({ success: true });
+    } else if (message.type === "recreateMenus") {
+      console.log('MarkDownload: Recreating context menus');
+      await createMenus();
       sendResponse({ success: true });
     } else {
       sendResponse({ error: 'Unknown message type: ' + message.type });
