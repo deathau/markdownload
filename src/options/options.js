@@ -42,22 +42,22 @@ const saveOptions = e => {
 const save = () => {
     const spinner = document.getElementById("spinner");
     spinner.style.display = "block";
-    browser.storage.sync.set(options)
+    chrome.storage.sync.set(options)
         .then(() => {
-            browser.contextMenus.update("toggle-includeTemplate", {
+            chrome.contextMenus.update("toggle-includeTemplate", {
                 checked: options.includeTemplate
             });
             try {
-                browser.contextMenus.update("tabtoggle-includeTemplate", {
+                chrome.contextMenus.update("tabtoggle-includeTemplate", {
                     checked: options.includeTemplate
                 });
             } catch { }
             
-            browser.contextMenus.update("toggle-downloadImages", {
+            chrome.contextMenus.update("toggle-downloadImages", {
                 checked: options.downloadImages
             });
             try {
-                browser.contextMenus.update("tabtoggle-downloadImages", {
+                chrome.contextMenus.update("tabtoggle-downloadImages", {
                     checked: options.downloadImages
                 });
             } catch { }
@@ -96,10 +96,10 @@ const setCurrentChoice = result => {
 
     // if browser doesn't support the download api (i.e. Safari)
     // we have to use contentLink download mode
-    if (!browser.downloads) {
+    if (!chrome.downloads) {
         options.downloadMode = 'contentLink';
         document.querySelectorAll("[name='downloadMode']").forEach(el => el.disabled = true)
-        document.querySelector('#downloadMode p').innerText = "The Downloas API is unavailable in this browser."
+        document.querySelector('#downloadMode p').innerText = "The Downloads API is unavailable in this browser."
     }
 
     const downloadImages = options.downloadImages && options.downloadMode == 'downloadsApi';
@@ -149,7 +149,7 @@ const restoreOptions = () => {
         console.error(error);
     }
 
-    browser.storage.sync.get(defaultOptions).then(setCurrentChoice, onError);
+    chrome.storage.sync.get(defaultOptions).then(setCurrentChoice, onError);
 }
 
 function textareaInput(){
@@ -201,7 +201,7 @@ const inputChange = e => {
                 let lines = ev.target.result;
                 options = JSON.parse(lines);
                 setCurrentChoice(options);
-                browser.contextMenus.removeAll()
+                chrome.contextMenus.removeAll()
                 createMenus()
                 save();            
                 refereshElements();
@@ -214,7 +214,7 @@ const inputChange = e => {
 
             if (key == "contextMenus") {
                 if (value) { createMenus() }
-                else { browser.contextMenus.removeAll() }
+                else { chrome.contextMenus.removeAll() }
             }
     
             save();
@@ -240,7 +240,7 @@ const buttonClick = (e) => {
         var d = new Date();
 
         var datestring = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
-        browser.downloads.download({
+        chrome.downloads.download({
             url: url,
             saveAs: true,
             filename: `MarkDownload-export-${datestring}.json`

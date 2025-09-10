@@ -159,9 +159,11 @@ function turndownContent(content, options, article) {
         filter: function (node, tdopts) {
             if (node.nodeName == 'IMG' && node.getAttribute('src')) {
                 let src = node.getAttribute('src');
+                console.log('MarkDownload ContentScript: Found image:', src);
                 node.setAttribute('src', validateUri(src, article.baseURI));
                 
                 if (options.downloadImages) {
+                    console.log('MarkDownload ContentScript: Download images enabled, processing image:', src);
                     let imageFilename = getImageFilename(src, options, false);
                     if (!imageList[src] || imageList[src] != imageFilename) {
                         let i = 1;
@@ -172,6 +174,7 @@ function turndownContent(content, options, article) {
                             imageFilename = parts.join('.');
                         }
                         imageList[src] = imageFilename;
+                        console.log('MarkDownload ContentScript: Added image to list:', src, '->', imageFilename);
                     }
                     
                     const obsidianLink = options.imageStyle.startsWith("obsidian");
@@ -289,7 +292,7 @@ function processCompleteArticle(domString, options, selection = false) {
         let title = textReplace(options.title, article, options.disallowedChars + '/');
         title = title.split('/').map(s => generateValidFileName(s, options.disallowedChars)).join('/');
         
-        console.log('MarkDownload ContentScript: Article processing complete, title:', title, 'markdown length:', result.markdown.length);
+        console.log('MarkDownload ContentScript: Article processing complete, title:', title, 'markdown length:', result.markdown.length, 'images found:', Object.keys(result.imageList).length);
         
         return {
             markdown: result.markdown,

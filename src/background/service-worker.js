@@ -550,27 +550,63 @@ async function formatMdClipsFolder(article) {
 // Download function
 async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsFolder = '') {
   console.log('MarkDownload: Starting download process');
+  console.log('MarkDownload: Download params - title:', title, 'tabId:', tabId, 'imageList keys:', Object.keys(imageList).length, 'mdClipsFolder:', mdClipsFolder);
+  
   const options = await getOptions();
+  console.log('MarkDownload: Options - downloadMode:', options.downloadMode, 'downloadImages:', options.downloadImages, 'saveAs:', options.saveAs);
   
   if (options.downloadMode == 'downloadsApi' && chrome.downloads) {
+    console.log('MarkDownload: Using downloads API');
     // Use data URL directly; createObjectURL is not available in MV3 service worker
     const dataUrl = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(markdown);
+    console.log('MarkDownload: Data URL length:', dataUrl.length);
 
     try {
       if (mdClipsFolder && !mdClipsFolder.endsWith('/')) mdClipsFolder += '/';
+      const filename = mdClipsFolder + title + ".md";
+      console.log('MarkDownload: Downloading file:', filename);
+      
       const id = await chrome.downloads.download({
         url: dataUrl,
-        filename: mdClipsFolder + title + ".md",
+        filename: filename,
         saveAs: options.saveAs
       });
+      console.log('MarkDownload: Download started with ID:', id);
+
+      // Download images (if enabled)
+      if (options.downloadImages && Object.keys(imageList).length > 0) {
+        console.log('MarkDownload: Downloading images:', Object.keys(imageList).length);
+        // Get the relative path of the markdown file (if any) for image path
+        let destPath = mdClipsFolder + title.substring(0, title.lastIndexOf('/'));
+        if(destPath && !destPath.endsWith('/')) destPath += '/';
+        
+        Object.entries(imageList).forEach(async ([src, filename]) => {
+          try {
+            // Start the download of the image
+            const imgId = await chrome.downloads.download({
+              url: src,
+              // Set a destination path (relative to md file)
+              filename: destPath ? destPath + filename : filename,
+              saveAs: false
+            });
+            console.log('MarkDownload: Image download started:', filename);
+          } catch (imgErr) {
+            console.error('MarkDownload: Image download failed:', src, imgErr);
+          }
+        });
+      }
     } catch (err) {
       console.error("MarkDownload: Download failed", err);
+      console.error("MarkDownload: Error details:", err.message, err.stack);
     }
   } else {
+    console.log('MarkDownload: Using content link fallback method');
     // Fallback to content link method
     try {
       await ensureContentScript(tabId);
       const filename = mdClipsFolder + generateValidFileName(title, options.disallowedChars) + ".md";
+      console.log('MarkDownload: Fallback filename:', filename);
+      
       const base64Data = btoa(encodeURIComponent(markdown).replace(/%([0-9A-F]{2})/g, function (match, p1) {
         return String.fromCharCode('0x' + p1);
       }));
@@ -581,8 +617,10 @@ async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsF
         link.href = `data:text/markdown;base64,${data}`;
         link.click();
       }, [filename, base64Data]);
+      console.log('MarkDownload: Fallback download completed');
     } catch (error) {
       console.error("MarkDownload: Content link download failed:", error);
+      console.error("MarkDownload: Fallback error details:", error.message, error.stack);
     }
   }
 }

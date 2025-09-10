@@ -24,6 +24,7 @@ cm.on("cursorActivity", (cm) => {
 });
 document.getElementById("download").addEventListener("click", download);
 document.getElementById("downloadSelection").addEventListener("click", downloadSelection);
+document.getElementById("copy").addEventListener("click", copyToClipboard);
 
 const defaultOptions = {
     includeTemplate: false,
@@ -48,7 +49,7 @@ const toggleClipSelection = options => {
     options.clipSelection = !options.clipSelection;
     document.querySelector("#selected").classList.toggle("checked");
     document.querySelector("#document").classList.toggle("checked");
-    browser.storage.sync.set(options).then(() => clipSite()).catch((error) => {
+    chrome.storage.sync.set(options).then(() => clipSite()).catch((error) => {
         console.error(error);
     });
 }
@@ -56,12 +57,12 @@ const toggleClipSelection = options => {
 const toggleIncludeTemplate = options => {
     options.includeTemplate = !options.includeTemplate;
     document.querySelector("#includeTemplate").classList.toggle("checked");
-    browser.storage.sync.set(options).then(() => {
-        browser.contextMenus.update("toggle-includeTemplate", {
+    chrome.storage.sync.set(options).then(() => {
+        chrome.contextMenus.update("toggle-includeTemplate", {
             checked: options.includeTemplate
         });
         try {
-            browser.contextMenus.update("tabtoggle-includeTemplate", {
+            chrome.contextMenus.update("tabtoggle-includeTemplate", {
                 checked: options.includeTemplate
             });
         } catch { }
@@ -74,12 +75,12 @@ const toggleIncludeTemplate = options => {
 const toggleDownloadImages = options => {
     options.downloadImages = !options.downloadImages;
     document.querySelector("#downloadImages").classList.toggle("checked");
-    browser.storage.sync.set(options).then(() => {
-        browser.contextMenus.update("toggle-downloadImages", {
+    chrome.storage.sync.set(options).then(() => {
+        chrome.contextMenus.update("toggle-downloadImages", {
             checked: options.downloadImages
         });
         try {
-            browser.contextMenus.update("tabtoggle-downloadImages", {
+            chrome.contextMenus.update("tabtoggle-downloadImages", {
                 checked: options.downloadImages
             });
         } catch { }
@@ -207,6 +208,41 @@ async function downloadSelection(e) {
     e.preventDefault();
     if (cm.somethingSelected()) {
         await sendDownloadMessage(cm.getSelection());
+    }
+}
+
+// event handler for copy button
+async function copyToClipboard(e) {
+    e.preventDefault();
+    try {
+        const textToCopy = cm.getValue();
+        await navigator.clipboard.writeText(textToCopy);
+        
+        // Show feedback to user
+        const copyButton = document.getElementById("copy");
+        const originalText = copyButton.textContent;
+        copyButton.textContent = "Copied!";
+        copyButton.style.backgroundColor = "#4CAF50";
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            copyButton.textContent = originalText;
+            copyButton.style.backgroundColor = "";
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Failed to copy text: ', error);
+        
+        // Fallback: show error feedback
+        const copyButton = document.getElementById("copy");
+        const originalText = copyButton.textContent;
+        copyButton.textContent = "Copy Failed";
+        copyButton.style.backgroundColor = "#f44336";
+        
+        setTimeout(() => {
+            copyButton.textContent = originalText;
+            copyButton.style.backgroundColor = "";
+        }, 2000);
     }
 }
 

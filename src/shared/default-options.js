@@ -32,10 +32,10 @@ const defaultOptions = {
 async function getOptions() {
   let options = defaultOptions;
   try {
-    options = await browser.storage.sync.get(defaultOptions);
+    options = await chrome.storage.sync.get(defaultOptions);
   } catch (err) {
     console.error(err);
   }
-  if (!browser.downloads) options.downloadMode = 'contentLink';
+  if (!chrome.downloads) options.downloadMode = 'contentLink';
   return options;
 }
