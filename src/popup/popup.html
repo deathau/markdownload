@@ -1,36 +1,135 @@
 
 <!DOCTYPE html>
-
 <html>
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkDownload</title>
     <link rel="stylesheet" href="lib/codemirror.css">
     <link rel="stylesheet" href="lib/xq-dark.css">
     <link rel="stylesheet" href="lib/xq-light.css">
     <link rel="stylesheet" href="popup.css">
   </head>
 
-<body>
-  <div id="container">
-    
-    <a href="#" class="button toggle" id="downloadImages"><i class="check"></i>Download Images</a>
-    <a href="/options/options.html" id="options" target="_blank">open options</a>
-    <div class="row" id="clipOption">
-      <a href="#" class="button toggle" id="selected"><i class="check"></i>Selected Text</a>
-      <a href="#" class="button toggle" id="document"><i class="check"></i>Entire Document</a>
+  <body>
+    <!-- Loading Spinner -->
+    <div id="spinner" class="loading-overlay">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+        <p>Processing page...</p>
+      </div>
     </div>
-    <a href="#" class="button toggle" id="includeTemplate"><i class="check"></i>Include front/back template</a>
-    <input type="text" id="title"></input>
-    <textarea id="md"></textarea>
-    <a href="#" class="button" id="download">Download</a>
-    <a href="#" class="button" id="downloadSelection">Download selected</a>
-    <a href="#" class="button" id="copy">Copy</a>
-  </div>
-  <div id="spinner"></div>
-  <!-- Chrome APIs are available natively in Manifest V3 -->
-  <script type="application/javascript" src="lib/codemirror.js"></script>
-  <script type="application/javascript" src="lib/modes/markdown/markdown.js"></script>
-  <script type="application/javascript" src="popup.js"></script>
-</body>
+
+    <!-- Main Container -->
+    <div id="container" class="main-container">
+      <!-- Header Section -->
+      <header class="header">
+        <div class="logo">
+          <h1>MarkDownload</h1>
+          <span class="subtitle">Web to Markdown</span>
+        </div>
+        <div class="header-actions">
+          <a href="/options/options.html" id="openOptions" target="_blank" class="icon-button" title="Advanced Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1.01c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+            </svg>
+          </a>
+        </div>
+      </header>
+
+      <!-- Quick Settings Panel -->
+      <section class="quick-settings">
+        <h3>Quick Settings</h3>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label class="toggle-switch" for="downloadImages">
+              <input type="checkbox" id="downloadImages">
+              <span class="slider"></span>
+              <span class="label">Download Images</span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <label class="toggle-switch" for="includeTemplate">
+              <input type="checkbox" id="includeTemplate">
+              <span class="slider"></span>
+              <span class="label">Include Template</span>
+            </label>
+          </div>
+          <div class="setting-item" id="clipOption">
+            <label>Content Selection:</label>
+            <div class="button-group">
+              <button class="toggle-button" id="selected" data-value="selection">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.76L18.88,4.88L21.71,7.71L9,20.42Z"/>
+                </svg>
+                Selected Text
+              </button>
+              <button class="toggle-button" id="document" data-value="document">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                </svg>
+                Full Document
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Action Buttons -->
+      <section class="action-section">
+        <div class="button-row">
+          <button id="download" class="primary-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+            </svg>
+            Download Markdown
+          </button>
+          <button id="sendToObsidian" class="secondary-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12,2L13.09,8.26L22,9L13.09,9.74L12,16L10.91,9.74L2,9L10.91,8.26L12,2Z"/>
+            </svg>
+            Send to Obsidian
+          </button>
+        </div>
+      </section>
+
+      <!-- Content Section with Title and Preview -->
+      <section class="content-section">
+        <!-- Title Section -->
+        <div class="title-section">
+          <div class="content-header">
+            <label for="title" class="title-label">Document Title</label>
+            <input type="text" id="title" class="title-input" placeholder="Enter document title...">
+          </div>
+        </div>
+        
+        <!-- Preview Section -->
+        <div class="editor-container">
+          <div class="editor-header">
+            <span class="editor-label">Markdown Preview</span>
+            <div class="editor-actions">
+              <button id="copy" class="action-button secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/>
+                </svg>
+                <span id="copy-text">Copy</span>
+              </button>
+            </div>
+          </div>
+          <textarea id="md" class="markdown-editor" placeholder="Markdown content will appear here..."></textarea>
+        </div>
+      </section>
+
+      <!-- Status Bar -->
+      <div id="status-bar" class="status-bar">
+        <span id="status-text">Ready</span>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="application/javascript" src="lib/codemirror.js"></script>
+    <script type="application/javascript" src="lib/modes/markdown/markdown.js"></script>
+    <script type="application/javascript" src="popup.js"></script>
+  </body>
 
 </html>

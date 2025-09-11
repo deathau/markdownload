@@ -411,6 +411,49 @@ async function handleMessage(message, sender, sendResponse) {
       console.log('MarkDownload: Recreating context menus');
       await createMenus();
       sendResponse({ success: true });
+    } else if (message.type === "sendToObsidian") {
+      try {
+        console.log('MarkDownload: Received sendToObsidian request from popup');
+        const tabId = message.tabId || sender.tab?.id;
+        if (!tabId) {
+          sendResponse({ error: 'No active tab' });
+          return;
+        }
+        // Ensure content script and copy markdown to clipboard
+        await ensureContentScript(tabId);
+        await executeScript(tabId, (markdown) => copyToClipboard(markdown), [message.markdown]);
+        // Build Obsidian URI using options supplied or stored
+        const options = message.options || await getOptions();
+        if (!options.obsidianIntegration) {
+          sendResponse({ error: 'Obsidian integration not enabled' });
+          return;
+        }
+        const folder = options.obsidianFolder || '';
+        const vault = options.obsidianVault || '';
+        let obsidianFolder = '';
+        if (folder) {
+          const article = { title: message.title || 'Untitled', baseURI: '' };
+          obsidianFolder = textReplace(folder, article, options.disallowedChars);
+          obsidianFolder = obsidianFolder.split('/').map(s => generateValidFileName(s, options.disallowedChars)).join('/');
+          if (!obsidianFolder.endsWith('/')) obsidianFolder += '/';
+        }
+        const filename = generateValidFileName(message.title || 'Untitled', options.disallowedChars);
+        const filepath = obsidianFolder + filename;
+        const obsidianUri = 'obsidian://advanced-uri?vault=' + encodeURIComponent(vault) + '&clipboard=true&mode=new&filepath=' + encodeURIComponent(filepath);
+        try {
+          await chrome.tabs.update(tabId, { url: obsidianUri });
+        } catch (err) {
+          try {
+            await chrome.tabs.create({ url: obsidianUri });
+          } catch (err2) {
+            console.error('MarkDownload: Failed to open Obsidian URI:', err2);
+          }
+        }
+        sendResponse({ success: true });
+      } catch (err) {
+        console.error('MarkDownload: sendToObsidian handler error:', err);
+        sendResponse({ error: err?.message || String(err) });
+      }
     } else {
       sendResponse({ error: 'Unknown message type: ' + message.type });
     }
