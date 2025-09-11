@@ -14,6 +14,7 @@ const saveOptions = e => {
         saveAs: document.querySelector("[name='saveAs']").checked,
         downloadImages: document.querySelector("[name='downloadImages']").checked,
         imagePrefix: document.querySelector("[name='imagePrefix']").value,
+        imageFilenameTemplate: document.querySelector("[name='imageFilenameTemplate']").value,
         mdClipsFolder: document.querySelector("[name='mdClipsFolder']").value,
         turndownEscape: document.querySelector("[name='turndownEscape']").checked,
         contextMenus: document.querySelector("[name='contextMenus']").checked,
@@ -108,6 +109,7 @@ const setCurrentChoice = result => {
     document.querySelector("[name='saveAs']").checked = options.saveAs;
     document.querySelector("[name='downloadImages']").checked = options.downloadImages;
     document.querySelector("[name='imagePrefix']").value = options.imagePrefix;
+    document.querySelector("[name='imageFilenameTemplate']").value = options.imageFilenameTemplate || '{pageTitle:kebab}_{imageIndex}.{ext}';
     document.querySelector("[name='mdClipsFolder']").value = result.mdClipsFolder;
     document.querySelector("[name='turndownEscape']").checked = options.turndownEscape;
     document.querySelector("[name='contextMenus']").checked = options.contextMenus;
@@ -170,6 +172,8 @@ const refereshElements = () => {
     const downloadImages = options.downloadImages && options.downloadMode == 'downloadsApi';
 
     show(document.getElementById("imagePrefix"), downloadImages);
+    show(document.getElementById("imageFilenameTemplate"), downloadImages);
+    show(document.querySelector(".template-help"), downloadImages);
 
     document.getElementById('markdown').disabled = !downloadImages;
     document.getElementById('base64').disabled = !downloadImages;

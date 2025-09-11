@@ -194,6 +194,42 @@ label p{
     transition:all 0.3s ease-out;
 }
 
+/* Styling for standalone template help */
+.template-help {
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.template-help summary {
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--primary);
+    padding: 12px 20px;
+    border-bottom: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.template-help summary:hover {
+    background: var(--bg-primary);
+    color: var(--primary);
+}
+
+.template-help[open] summary {
+    border-bottom-color: var(--border);
+    background: var(--bg-primary);
+}
+
+.template-help .instructions {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+    background: transparent;
+}
+
 .textbox-container > label,
 .button-container > label {
     margin: 8px 20px;

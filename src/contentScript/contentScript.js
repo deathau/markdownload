@@ -62,7 +62,50 @@ function generateValidFileName(title, disallowedChars = null) {
     return name;
 }
 
-function getImageFilename(src, options, prependFilePath = true) {
+function getImageFilename(src, options, article, imageIndex, prependFilePath = true) {
+    // If imageFilenameTemplate is set, use template-based naming
+    if (options.imageFilenameTemplate && options.imageFilenameTemplate.trim()) {
+        // Extract original filename and extension
+        const slashPos = src.lastIndexOf('/');
+        const queryPos = src.indexOf('?');
+        let originalFilename = src.substring(slashPos + 1, queryPos > 0 ? queryPos : src.length);
+        
+        if (originalFilename.includes(';base64,')) {
+            originalFilename = 'image.' + originalFilename.substring(0, originalFilename.indexOf(';'));
+        }
+        
+        let extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
+        if (extension === originalFilename || extension === '') {
+            extension = '.png'; // Default extension
+        }
+        
+        // Prepare template variables
+        const templateVars = {
+            ...article,
+            imageIndex: String(imageIndex).padStart(3, '0'), // 001, 002, 003, etc.
+            originalFilename: originalFilename.substring(0, originalFilename.lastIndexOf('.') || originalFilename.length),
+            ext: extension.substring(1) // Remove the dot
+        };
+        
+        // Apply text replacement to the template
+        let filename = textReplace(options.imageFilenameTemplate, templateVars, options.disallowedChars);
+        filename = generateValidFileName(filename, options.disallowedChars);
+        
+        // Add prefix if needed (for backward compatibility)
+        if (prependFilePath) {
+            let imagePrefix = (options.imagePrefix || '');
+            if (options.title.includes('/')) {
+                imagePrefix = options.title.substring(0, options.title.lastIndexOf('/') + 1) + imagePrefix;
+            } else {
+                imagePrefix = options.title + (imagePrefix.startsWith('/') ? '' : '/') + imagePrefix;
+            }
+            filename = imagePrefix + filename;
+        }
+        
+        return filename;
+    }
+    
+    // Fallback to original logic if no template is set
     const slashPos = src.lastIndexOf('/');
     const queryPos = src.indexOf('?');
     let filename = src.substring(slashPos + 1, queryPos > 0 ? queryPos : src.length);
@@ -153,6 +196,7 @@ function turndownContent(content, options, article) {
     turndownService.keep(['iframe', 'sub', 'sup', 'u', 'ins', 'del', 'small', 'big']);
 
     let imageList = {};
+    let imageIndex = 1; // Counter for image ordering
     
     // Add image rule
     turndownService.addRule('images', {
@@ -164,16 +208,22 @@ function turndownContent(content, options, article) {
                 
                 if (options.downloadImages) {
                     console.log('MarkDownload ContentScript: Download images enabled, processing image:', src);
-                    let imageFilename = getImageFilename(src, options, false);
+                    let imageFilename = getImageFilename(src, options, article, imageIndex, false);
                     if (!imageList[src] || imageList[src] != imageFilename) {
                         let i = 1;
+                        let originalFilename = imageFilename;
                         while (Object.values(imageList).includes(imageFilename)) {
-                            const parts = imageFilename.split('.');
-                            if (i == 1) parts.splice(parts.length - 1, 0, i++);
-                            else parts.splice(parts.length - 2, 1, i++);
-                            imageFilename = parts.join('.');
+                            const parts = originalFilename.split('.');
+                            if (parts.length > 1) {
+                                parts.splice(parts.length - 1, 0, `(${i})`);
+                                imageFilename = parts.join('.');
+                            } else {
+                                imageFilename = originalFilename + `(${i})`;
+                            }
+                            i++;
                         }
                         imageList[src] = imageFilename;
+                        imageIndex++; // Increment the global image counter
                         console.log('MarkDownload ContentScript: Added image to list:', src, '->', imageFilename);
                     }
                     

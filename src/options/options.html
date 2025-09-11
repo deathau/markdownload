@@ -177,6 +177,44 @@ More information:  <a href="https://vinzent03.github.io/obsidian-advanced-uri/">
                 <label for="imagePrefix">Image filename prefix template: </label>
                 <input type="text" name="imagePrefix" role="textbox" />
             </div>
+
+            <div class="textbox-container" id="imageFilenameTemplate">
+                <label for="imageFilenameTemplate">Image filename template: </label>
+                <input type="text" name="imageFilenameTemplate" role="textbox" />
+            </div>
+
+            <details class="template-help">
+                <summary><strong>📝 Template Variables & Examples</strong></summary>
+                <small class="instructions">
+                    Configure how image files are named when downloaded. Available variables:
+                    <ul>
+                        <li><code>{pageTitle}</code> - Article title (same as used for markdown filename)</li>
+                        <li><code>{imageIndex}</code> - Image sequence number (001, 002, 003...)</li>
+                        <li><code>{originalFilename}</code> - Original image filename (without extension)</li>
+                        <li><code>{ext}</code> - File extension (png, jpg, gif, etc.)</li>
+                        <li><code>{byline}</code> - Author information</li>
+                        <li>Plus all other article variables: <code>{title}</code>, <code>{excerpt}</code>, <code>{date:FORMAT}</code>, etc.</li>
+                    </ul>
+                    
+                    <p><strong>Formatting options (same as title template):</strong></p>
+                    <ul>
+                        <li><code>:kebab</code> - kebab-case (article-title)</li>
+                        <li><code>:snake</code> - snake_case (article_title)</li>
+                        <li><code>:camel</code> - camelCase (articleTitle)</li>
+                        <li><code>:pascal</code> - PascalCase (ArticleTitle)</li>
+                        <li><code>:lower</code> - lowercase</li>
+                        <li><code>:upper</code> - UPPERCASE</li>
+                    </ul>
+
+                    <p><strong>Examples:</strong></p>
+                    <ul>
+                        <li><code>{pageTitle:kebab}_{imageIndex}.{ext}</code> → <code>article-title_001.jpg</code></li>
+                        <li><code>{pageTitle:snake}_{imageIndex}.{ext}</code> → <code>article_title_002.png</code></li>
+                        <li><code>{byline:kebab}_{pageTitle:camel}_{imageIndex}.{ext}</code> → <code>john-doe_articleTitle_003.gif</code></li>
+                        <li><code>img_{imageIndex}_{originalFilename}.{ext}</code> → <code>img_004_screenshot.jpg</code></li>
+                    </ul>
+                </small>
+            </details>
         </div>
     </div>
 

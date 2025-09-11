@@ -126,6 +126,7 @@ const localDefaultOptions = {
     saveAs: false,
     downloadImages: false,
     imagePrefix: '{pageTitle}/',
+    imageFilenameTemplate: '{pageTitle:kebab}_{imageIndex}.{ext}',
     mdClipsFolder: null,
     disallowedChars: '[]#^',
     downloadMode: 'downloadsApi',
