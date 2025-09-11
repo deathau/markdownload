@@ -749,6 +749,232 @@ input#title {
     align-items: center;
 }
 
+/* Button with Overlay Help */
+.button-with-overlay-help {
+    position: relative;
+}
+
+.button-with-overlay-help:hover .overlay-help-icon {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.overlay-help-icon {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+    color: var(--primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
+}
+
+.overlay-help-icon:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark mode support for overlay help */
+@media (prefers-color-scheme: dark) {
+    .overlay-help-icon {
+        background: rgba(0, 0, 0, 0.8);
+        color: var(--primary-light);
+    }
+    
+    .overlay-help-icon:hover {
+        background: rgba(0, 0, 0, 0.9);
+    }
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: var(--bg);
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+    color: var(--fg);
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--fg-muted);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+    line-height: 1;
+}
+
+.close-button:hover {
+    background: var(--bg-tertiary);
+    color: var(--fg);
+}
+
+.modal-body {
+    padding: var(--spacing-lg);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Setup Steps */
+.setup-step {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    align-items: flex-start;
+}
+
+.step-number {
+    background: var(--primary);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    flex-shrink: 0;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-content h4 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: var(--fg);
+}
+
+.step-content p {
+    margin: 0;
+    color: var(--fg-muted);
+    line-height: 1.5;
+}
+
+.quick-setup {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.quick-setup label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--fg);
+    margin-bottom: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+}
+
+.quick-setup label:first-child {
+    margin-top: 0;
+}
+
+.setup-input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--fg);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-sm);
+    transition: var(--transition-fast);
+    box-sizing: border-box;
+}
+
+.setup-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.setup-button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    margin-top: var(--spacing-sm);
+}
+
+.setup-button:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
 
 .primary-button {
     flex: 1;

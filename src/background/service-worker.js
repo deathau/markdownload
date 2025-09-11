@@ -10,7 +10,8 @@ try {
     'moment.min.js', 
     'turndown.js',
     'turndown-plugin-gfm.js',
-    'Readability.js'
+    'Readability.js',
+    'jszip.min.js'
   );
   console.log('MarkDownload: All scripts imported successfully');
 } catch (e) {
@@ -609,16 +610,45 @@ async function formatMdClipsFolder(article) {
 
 // Download function
 async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsFolder = '') {
-  console.log('MarkDownload: Starting download process');
+  
   console.log('MarkDownload: Download params - title:', title, 'tabId:', tabId, 'imageList keys:', Object.keys(imageList).length, 'mdClipsFolder:', mdClipsFolder);
   
   const options = await getOptions();
   console.log('MarkDownload: Options - downloadMode:', options.downloadMode, 'downloadImages:', options.downloadImages, 'saveAs:', options.saveAs);
   
+  // if we're downloading images, we're going to zip them up
+  if (options.downloadImages && Object.keys(imageList).length > 0) {
+    const zip = new JSZip();
+    let safeTitle = title.replace(/[\\/|\\:*?"<>]/g, ' ');
+    const imageFolder = zip.folder("images");
+
+    // loop through the image list and replace the images in the markdown
+    for (const [src, filename] of Object.entries(imageList)) {
+      const localImagePath = "images/" + filename;
+      markdown = markdown.replaceAll(src, localImagePath);
+      imageFolder.file(filename, fetch(src).then(res => res.blob()));
+    }
+
+    // add the markdown file to the zip
+    zip.file(safeTitle + '.md', markdown);
+
+    // generate the zip and download it
+    const content = await zip.generateAsync({ type: 'base64' });
+    const dataUrl = 'data:application/zip;base64,' + content;
+
+    const id = await chrome.downloads.download({
+      url: dataUrl,
+      filename: mdClipsFolder + safeTitle + ".zip",
+      saveAs: options.saveAs
+    });
+
+    return;
+  }
+
   if (options.downloadMode == 'downloadsApi' && chrome.downloads) {
     console.log('MarkDownload: Using downloads API');
     // Use data URL directly; createObjectURL is not available in MV3 service worker
-    const dataUrl = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(markdown);
+const dataUrl = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(markdown);
     console.log('MarkDownload: Data URL length:', dataUrl.length);
 
     try {

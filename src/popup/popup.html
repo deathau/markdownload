@@ -1,135 +1,197 @@
-
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MarkDownload</title>
-    <link rel="stylesheet" href="lib/codemirror.css">
-    <link rel="stylesheet" href="lib/xq-dark.css">
-    <link rel="stylesheet" href="lib/xq-light.css">
-    <link rel="stylesheet" href="popup.css">
-  </head>
 
-  <body>
-    <!-- Loading Spinner -->
-    <div id="spinner" class="loading-overlay">
-      <div class="spinner-container">
-        <div class="spinner"></div>
-        <p>Processing page...</p>
-      </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarkDownload</title>
+  <link rel="stylesheet" href="lib/codemirror.css">
+  <link rel="stylesheet" href="lib/xq-dark.css">
+  <link rel="stylesheet" href="lib/xq-light.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <!-- Loading Spinner -->
+  <div id="spinner" class="loading-overlay">
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <p>Processing page...</p>
     </div>
+  </div>
 
-    <!-- Main Container -->
-    <div id="container" class="main-container">
-      <!-- Header Section -->
-      <header class="header">
-        <div class="logo">
-          <h1>MarkDownload</h1>
-          <span class="subtitle">Web to Markdown</span>
-        </div>
-        <div class="header-actions">
-          <a href="/options/options.html" id="openOptions" target="_blank" class="icon-button" title="Advanced Settings">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1.01c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
-            </svg>
-          </a>
-        </div>
-      </header>
+  <!-- Main Container -->
+  <div id="container" class="main-container">
+    <!-- Header Section -->
+    <header class="header">
+      <div class="logo">
+        <h1>MarkDownload</h1>
+        <span class="subtitle">Web to Markdown</span>
+      </div>
+      <div class="header-actions">
+        <a href="/options/options.html" id="openOptions" target="_blank" class="icon-button" title="Advanced Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1.01c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" />
+          </svg>
+        </a>
+      </div>
+    </header>
 
-      <!-- Quick Settings Panel -->
-      <section class="quick-settings">
-        <h3>Quick Settings</h3>
-        <div class="settings-grid">
-          <div class="setting-item">
-            <label class="toggle-switch" for="downloadImages">
-              <input type="checkbox" id="downloadImages">
-              <span class="slider"></span>
-              <span class="label">Download Images</span>
-            </label>
-          </div>
-          <div class="setting-item">
-            <label class="toggle-switch" for="includeTemplate">
-              <input type="checkbox" id="includeTemplate">
-              <span class="slider"></span>
-              <span class="label">Include Template</span>
-            </label>
-          </div>
-          <div class="setting-item" id="clipOption">
-            <label>Content Selection:</label>
-            <div class="button-group">
-              <button class="toggle-button" id="selected" data-value="selection">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.76L18.88,4.88L21.71,7.71L9,20.42Z"/>
-                </svg>
-                Selected Text
-              </button>
-              <button class="toggle-button" id="document" data-value="document">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                </svg>
-                Full Document
-              </button>
-            </div>
+    <!-- Quick Settings Panel -->
+    <section class="quick-settings">
+      <h3>Quick Settings</h3>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label class="toggle-switch" for="downloadImages">
+            <input type="checkbox" id="downloadImages">
+            <span class="slider"></span>
+            <span class="label">Download Images</span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <label class="toggle-switch" for="includeTemplate">
+            <input type="checkbox" id="includeTemplate">
+            <span class="slider"></span>
+            <span class="label">Include Template</span>
+          </label>
+        </div>
+        <div class="setting-item" id="clipOption">
+          <label>Content Selection:</label>
+          <div class="button-group">
+            <button class="toggle-button" id="selected" data-value="selection">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.76L18.88,4.88L21.71,7.71L9,20.42Z" />
+              </svg>
+              Selected Text
+            </button>
+            <button class="toggle-button" id="document" data-value="document">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              Full Document
+            </button>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- Action Buttons -->
-      <section class="action-section">
-        <div class="button-row">
-          <button id="download" class="primary-button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
-            </svg>
-            Download Markdown
-          </button>
-          <button id="sendToObsidian" class="secondary-button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <!-- Action Buttons -->
+    <section class="action-section">
+      <div class="button-row">
+        <button id="download" class="primary-button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+          </svg>
+          Download Markdown
+        </button>
+        <button id="sendToObsidian" class="secondary-button button-with-overlay-help">
+          <svg alt="Obsidian" width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#A88BFA"
+              d="m6.91927 14.5955c.64053-.1907 1.67255-.4839 2.85923-.5565-.71191-1.7968-.88376-3.3691-.74554-4.76905.15962-1.61678.72977-2.9662 1.28554-4.11442.1186-.24501.2326-.47313.3419-.69198.1549-.30984.3004-.60109.4365-.8953.2266-.48978.3948-.92231.4798-1.32416.0836-.39515.0841-.74806-.0148-1.08657-.099-.338982-.3093-.703864-.7093-1.1038132-.5222-.1353116-1.1017-.0165173-1.53613.3742922l-5.15591 4.638241c-.28758.25871-.47636.60929-.53406.99179l-.44455 2.94723c.69903.6179 2.42435 2.41414 3.47374 4.90644.09364.2224.1819.4505.26358.6838z">
+            </path>
+            <path fill="#A88BFA"
+              d="m2.97347 10.3512c-.02431.1037-.05852.205-.10221.3024l-2.724986 6.0735c-.279882.6238-.15095061 1.3552.325357 1.8457l4.288349 4.4163c2.1899-3.2306 1.87062-6.2699.87032-8.6457-.75846-1.8013-1.90801-3.2112-2.65683-3.9922z">
+            </path>
+            <path fill="#A88BFA"
+              d="m5.7507 23.5094c.07515.012.15135.0192.2281.0215.81383.0244 2.18251.0952 3.29249.2997.90551.1669 2.70051.6687 4.17761 1.1005 1.1271.3294 2.2886-.5707 2.4522-1.7336.1192-.8481.343-1.8075.7553-2.6869l-.0095.0033c-.6982-1.9471-1.5865-3.2044-2.5178-4.0073-.9284-.8004-1.928-1.1738-2.8932-1.3095-1.60474-.2257-3.07497.1961-4.00103.4682.55465 2.3107.38396 5.0295-1.48417 7.8441z">
+            </path>
+            <path fill="#A88BFA"
+              d="m17.3708 19.3102c.9267-1.3985 1.5868-2.4862 1.9352-3.0758.1742-.295.1427-.6648-.0638-.9383-.5377-.7126-1.5666-2.1607-2.1272-3.5015-.5764-1.3785-.6624-3.51876-.6673-4.56119-.0019-.39626-.1275-.78328-.3726-1.09465l-3.3311-4.23183c-.0117.19075-.0392.37998-.0788.56747-.1109.52394-.32 1.04552-.5585 1.56101-.1398.30214-.3014.62583-.4646.95284-.1086.21764-.218.4368-.3222.652-.5385 1.11265-1.0397 2.32011-1.1797 3.73901-.1299 1.31514.0478 2.84484.8484 4.67094.1333.0113.2675.0262.4023.0452 1.1488.1615 2.3546.6115 3.4647 1.5685.9541.8226 1.8163 2.0012 2.5152 3.6463z">
+            </path>
+          </svg>
+          <!-- <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12,2L13.09,8.26L22,9L13.09,9.74L12,16L10.91,9.74L2,9L10.91,8.26L12,2Z"/>
+            </svg> -->
+          Send to Obsidian
+          <div id="obsidianHelp" class="overlay-help-icon" title="Obsidian Setup Help">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z">
+              </path>
             </svg>
-            Send to Obsidian
-          </button>
-        </div>
-      </section>
+          </div>
+        </button>
+      </div>
+    </section>
 
-      <!-- Content Section with Title and Preview -->
-      <section class="content-section">
-        <!-- Title Section -->
-        <div class="title-section">
-          <div class="content-header">
-            <label for="title" class="title-label">Document Title</label>
-            <input type="text" id="title" class="title-input" placeholder="Enter document title...">
+    <!-- Content Section with Title and Preview -->
+    <section class="content-section">
+      <!-- Title Section -->
+      <div class="title-section">
+        <div class="content-header">
+          <label for="title" class="title-label">Document Title</label>
+          <input type="text" id="title" class="title-input" placeholder="Enter document title...">
+        </div>
+      </div>
+
+      <!-- Preview Section -->
+      <div class="editor-container">
+        <div class="editor-header">
+          <span class="editor-label">Markdown Preview</span>
+          <div class="editor-actions">
+            <button id="copy" class="action-button secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
+              </svg>
+              <span id="copy-text">Copy</span>
+            </button>
           </div>
         </div>
-        
-        <!-- Preview Section -->
-        <div class="editor-container">
-          <div class="editor-header">
-            <span class="editor-label">Markdown Preview</span>
-            <div class="editor-actions">
-              <button id="copy" class="action-button secondary">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/>
-                </svg>
-                <span id="copy-text">Copy</span>
-              </button>
+        <textarea id="md" class="markdown-editor" placeholder="Markdown content will appear here..."></textarea>
+      </div>
+    </section>
+
+    <!-- Status Bar -->
+    <div id="status-bar" class="status-bar">
+      <span id="status-text">Ready</span>
+    </div>
+  </div>
+
+  <!-- Obsidian Help Modal -->
+  <div id="obsidianHelpModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Obsidian Setup Guide</h3>
+        <button id="closeModal" class="close-button">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="setup-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Install Advanced URI Plugin</h4>
+            <p>In Obsidian, go to Settings → Community Plugins → Browse → Search "Advanced URI" → Install & Enable</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Quick Setup</h4>
+            <div class="quick-setup">
+              <label for="vaultName">Vault Name:</label>
+              <input type="text" id="vaultName" placeholder="MyVault" class="setup-input">
+              <label for="folderPath">Folder Path (optional):</label>
+              <input type="text" id="folderPath" placeholder="Inbox" class="setup-input">
+              <button id="saveObsidianSettings" class="setup-button">Save Settings</button>
             </div>
           </div>
-          <textarea id="md" class="markdown-editor" placeholder="Markdown content will appear here..."></textarea>
         </div>
-      </section>
-
-      <!-- Status Bar -->
-      <div id="status-bar" class="status-bar">
-        <span id="status-text">Ready</span>
+        <div class="setup-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Test Connection</h4>
+            <p>Click "Send to Obsidian" to test if everything works!</p>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- Scripts -->
-    <script type="application/javascript" src="lib/codemirror.js"></script>
-    <script type="application/javascript" src="lib/modes/markdown/markdown.js"></script>
-    <script type="application/javascript" src="popup.js"></script>
-  </body>
+  <!-- Scripts -->
+  <script type="application/javascript" src="lib/codemirror.js"></script>
+  <script type="application/javascript" src="lib/modes/markdown/markdown.js"></script>
+  <script type="application/javascript" src="popup.js"></script>
+</body>
 
 </html>

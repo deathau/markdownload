@@ -87,6 +87,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("download")?.addEventListener("click", download);
     document.getElementById("copy")?.addEventListener("click", copyToClipboard);
     document.getElementById("sendToObsidian")?.addEventListener("click", sendToObsidian);
+    document.getElementById("obsidianHelp")?.addEventListener("click", (e) => {
+        e.stopPropagation(); // 阻止事件冒泡到按钮
+        e.preventDefault();
+        showObsidianHelp();
+    });
+    document.getElementById("closeModal")?.addEventListener("click", hideObsidianHelp);
+    document.getElementById("saveObsidianSettings")?.addEventListener("click", saveObsidianSettings);
+    
+    // Close modal when clicking overlay
+    document.getElementById("obsidianHelpModal")?.addEventListener("click", (e) => {
+        if (e.target.id === "obsidianHelpModal") {
+            hideObsidianHelp();
+        }
+    });
+    
+    // Load existing Obsidian settings
+    loadObsidianSettings();
 });
 
 // Provide a local defaultOptions fallback in case shared script isn't loaded
@@ -550,6 +567,74 @@ async function download(e) {
     window.close();
 }
 
+
+// Obsidian Help Modal Functions
+function showObsidianHelp() {
+    const modal = document.getElementById("obsidianHelpModal");
+    if (modal) {
+        modal.style.display = "flex";
+        document.body.style.overflow = "hidden";
+    }
+}
+
+function hideObsidianHelp() {
+    const modal = document.getElementById("obsidianHelpModal");
+    if (modal) {
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+    }
+}
+
+async function loadObsidianSettings() {
+    try {
+        const result = await chrome.storage.sync.get(['obsidianVault', 'obsidianFolder']);
+        const vaultInput = document.getElementById("vaultName");
+        const folderInput = document.getElementById("folderPath");
+        
+        if (vaultInput && result.obsidianVault) {
+            vaultInput.value = result.obsidianVault;
+        }
+        if (folderInput && result.obsidianFolder) {
+            folderInput.value = result.obsidianFolder;
+        }
+    } catch (error) {
+        console.log("Could not load Obsidian settings:", error);
+    }
+}
+
+async function saveObsidianSettings() {
+    const vaultInput = document.getElementById("vaultName");
+    const folderInput = document.getElementById("folderPath");
+    
+    if (!vaultInput) return;
+    
+    const vaultName = vaultInput.value.trim();
+    const folderPath = folderInput.value.trim();
+    
+    if (!vaultName) {
+        updateStatus("Please enter a vault name", "warning");
+        return;
+    }
+    
+    try {
+        await chrome.storage.sync.set({
+            obsidianVault: vaultName,
+            obsidianFolder: folderPath,
+            obsidianIntegration: true
+        });
+        
+        updateStatus("Obsidian settings saved!", "success");
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+            hideObsidianHelp();
+        }, 1000);
+        
+    } catch (error) {
+        console.error("Error saving Obsidian settings:", error);
+        updateStatus("Failed to save settings", "error");
+    }
+}
 
 // event handler for copy button
 async function copyToClipboard(e) {
