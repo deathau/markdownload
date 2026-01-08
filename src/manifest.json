@@ -1,7 +1,7 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "MarkDownload - Markdown Web Clipper",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "author": "Gordon Pedsersen",
   "description": "This extension works like a web clipper, but it downloads articles in markdown format.",
   "icons": {
@@ -13,14 +13,17 @@
     "512": "icons/favicon-512x512.png"
   },
   "permissions": [
-    "<all_urls>",
     "activeTab",
     "downloads",
     "storage",
     "contextMenus",
-    "clipboardWrite"
+    "clipboardWrite",
+    "scripting"
   ],
-  "browser_action": {
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
     "default_title": "MarkDownload",
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -31,26 +34,27 @@
     }
   },
   "background": {
-    "scripts": [
-      "browser-polyfill.min.js",
-      "background/apache-mime-types.js",
-      "background/moment.min.js",
-      "background/turndown.js",
-      "background/turndown-plugin-gfm.js",
-      "/background/Readability.js",
-      "shared/context-menus.js",
-      "shared/default-options.js",
-      "background/background.js"
-    ]
+    "service_worker": "background/service-worker.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["browser-polyfill.min.js", "contentScript/contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["contentScript/pageContext.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "options_ui": {
     "page": "options/options.html",
-    "browser_style": false,
-    "chrome_style": false,
     "open_in_tab": false
   },
   "commands": {
-    "_execute_browser_action": {
+    "_execute_action": {
       "suggested_key": {
         "default": "Alt+Shift+M"
       }
@@ -85,12 +89,11 @@
     "copy_tab_to_obsidian": {
       "description": "Copy current tab as Markdown to Obsidian"
     }
-    
   },
   "browser_specific_settings": {
     "gecko": {
       "id": "{1c5e4c6f-5530-49a3-b216-31ce7d744db0}",
-      "strict_min_version": "65.0"
+      "strict_min_version": "109.0"
     }
   }
 }

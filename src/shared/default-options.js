@@ -1,4 +1,4 @@
-// these are the default options
+// Default options for MarkDownload - Manifest V3
 const defaultOptions = {
   headingStyle: "atx",
   hr: "___",
@@ -26,16 +26,16 @@ const defaultOptions = {
   obsidianIntegration: false,
   obsidianVault: "",
   obsidianFolder: "",
-}
+};
 
-// function to get the options from storage and substitute default options if it fails
+// Function to get the options from storage and substitute default options if it fails
 async function getOptions() {
-  let options = defaultOptions;
+  let options = { ...defaultOptions };
   try {
-    options = await browser.storage.sync.get(defaultOptions);
+    options = await chrome.storage.sync.get(defaultOptions);
   } catch (err) {
     console.error(err);
   }
-  if (!browser.downloads) options.downloadMode = 'contentLink';
+  if (!chrome.downloads) options.downloadMode = 'contentLink';
   return options;
 }
