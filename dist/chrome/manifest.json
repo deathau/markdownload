@@ -34,7 +34,7 @@
     }
   },
   "background": {
-    "service_worker": "service-worker.ts",
+    "service_worker": "service-worker.js",
     "type": "module"
   },
   "options_ui": {
@@ -80,15 +80,23 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-scripts/content-script.ts"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-scripts/content-script.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["content-scripts/page-context.ts"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "content-scripts/page-context.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "browser_specific_settings": {
