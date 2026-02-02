@@ -1,0 +1,42 @@
+{
+  "name": "markdownload",
+  "version": "4.0.0",
+  "description": "A browser extension to download web pages as markdown files",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development && node scripts/copy-assets.js dist/chrome",
+    "build": "vite build && node scripts/copy-assets.js dist/chrome",
+    "build:firefox": "vite build --mode firefox && node scripts/copy-assets.js dist/firefox",
+    "build:chrome": "vite build --mode chrome && node scripts/copy-assets.js dist/chrome",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@anthropic-ai/tokenizer": "^0.0.4",
+    "@mozilla/readability": "^0.5.0",
+    "dayjs": "^1.11.13",
+    "turndown": "^7.2.0",
+    "turndown-plugin-gfm": "^1.0.2",
+    "webextension-polyfill": "^0.12.0"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "@crxjs/vite-plugin": "^2.0.0-beta.28",
+    "@types/chrome": "^0.0.287",
+    "@types/node": "^22.10.5",
+    "@types/turndown": "^5.0.5",
+    "@types/webextension-polyfill": "^0.12.1",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.17.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  },
+  "author": "Gordon Pedsersen",
+  "license": "MIT"
+}
