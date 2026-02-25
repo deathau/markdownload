@@ -6,7 +6,7 @@ function notifyExtension() {
 function getHTMLOfDocument() {
     // make sure a title tag exists so that pageTitle is not empty and
     // a filename can be genarated.
-    if (document.head.getElementsByTagName('title').length == 0) {
+    if (document.head.getElementsByTagName('title').length === 0) {
         let titleEl = document.createElement('title');
         // prepate a good default text (the text displayed in the window title)
         titleEl.innerText = document.title;
@@ -81,7 +81,7 @@ function getHTMLOfSelection() {
         if (selection.rangeCount > 0) {
             let content = '';
             for (let i = 0; i < selection.rangeCount; i++) {
-                range = selection.getRangeAt(0);
+                range = selection.getRangeAt(i);
                 var clonedSelection = range.cloneContents();
                 var div = document.createElement('div');
                 div.appendChild(clonedSelection);
@@ -115,52 +115,6 @@ function downloadMarkdown(filename, text) {
     link.download = filename;
     link.href = datauri;
     link.click();
-}
-
-function downloadImage(filename, url) {
-
-    /* Link with a download attribute? CORS says no.
-    var link = document.createElement('a');
-    link.download = filename.substring(0, filename.lastIndexOf('.'));
-    link.href = url;
-    console.log(link);
-    link.click();
-    */
-
-    /* Try via xhr? Blocked by CORS.
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'blob';
-    xhr.onload = () => {
-        console.log('onload!')
-        var file = new Blob([xhr.response], {type: 'application/octet-stream'});
-        var link = document.createElement('a');
-        link.download = filename;//.substring(0, filename.lastIndexOf('.'));
-        link.href = window.URL.createObjectURL(file);
-        console.log(link);
-        link.click();
-    }
-    xhr.send();
-    */
-
-    /* draw on canvas? Inscure operation
-    let img = new Image();
-    img.src = url;
-    img.onload = () => {
-        let canvas = document.createElement("canvas");
-        let ctx = canvas.getContext("2d");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
-        var link = document.createElement('a');
-        const ext = filename.substring(filename.lastIndexOf('.'));
-        link.download = filename;
-        link.href = canvas.toDataURL(`image/png`);
-        console.log(link);
-        link.click();
-    }
-    */
 }
 
 (function loadPageContextScript(){

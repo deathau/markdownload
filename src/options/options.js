@@ -51,8 +51,10 @@ const save = () => {
                 browser.contextMenus.update("tabtoggle-includeTemplate", {
                     checked: options.includeTemplate
                 });
-            } catch { }
-            
+            } catch (e) {
+                // tab context menus not supported in this browser
+            }
+
             browser.contextMenus.update("toggle-downloadImages", {
                 checked: options.downloadImages
             });
@@ -60,7 +62,9 @@ const save = () => {
                 browser.contextMenus.update("tabtoggle-downloadImages", {
                     checked: options.downloadImages
                 });
-            } catch { }
+            } catch (e) {
+                // tab context menus not supported in this browser
+            }
         })
         .then(() => {
             document.querySelectorAll(".status").forEach(statusEl => {
@@ -99,12 +103,12 @@ const setCurrentChoice = result => {
     if (!browser.downloads) {
         options.downloadMode = 'contentLink';
         document.querySelectorAll("[name='downloadMode']").forEach(el => el.disabled = true)
-        document.querySelector('#downloadMode p').innerText = "The Downloas API is unavailable in this browser."
+        document.querySelector('#downloadMode p').innerText = "The Downloads API is unavailable in this browser."
     }
 
-    const downloadImages = options.downloadImages && options.downloadMode == 'downloadsApi';
+    const downloadImages = options.downloadImages && options.downloadMode === 'downloadsApi';
 
-    if (!downloadImages && (options.imageStyle == 'markdown' || options.imageStyle.startsWith('obsidian'))) {
+    if (!downloadImages && (options.imageStyle === 'markdown' || options.imageStyle.startsWith('obsidian'))) {
         options.imageStyle = 'originalSource';
     }
 
@@ -163,21 +167,21 @@ const show = (el, show) => {
 
 const refereshElements = () => {
     document.getElementById("downloadModeGroup").querySelectorAll('.radio-container,.checkbox-container,.textbox-container').forEach(container => {
-        show(container, options.downloadMode == 'downloadsApi')
+        show(container, options.downloadMode === 'downloadsApi')
     });
 
     // document.getElementById("obsidianUriGroup").querySelectorAll('.radio-container,.checkbox-container,.textbox-container').forEach(container => {
     //     show(container, options.downloadMode == 'obsidianUri')
     // });
-    show(document.getElementById("mdClipsFolder"), options.downloadMode == 'downloadsApi');
+    show(document.getElementById("mdClipsFolder"), options.downloadMode === 'downloadsApi');
 
-    show(document.getElementById("linkReferenceStyle"), (options.linkStyle == "referenced"));
+    show(document.getElementById("linkReferenceStyle"), (options.linkStyle === "referenced"));
 
     show(document.getElementById("imageRefOptions"), (!options.imageStyle.startsWith("obsidian") && options.imageStyle != "noImage"));
 
-    show(document.getElementById("fence"), (options.codeBlockStyle == "fenced"));
+    show(document.getElementById("fence"), (options.codeBlockStyle === "fenced"));
 
-    const downloadImages = options.downloadImages && options.downloadMode == 'downloadsApi';
+    const downloadImages = options.downloadImages && options.downloadMode === 'downloadsApi';
 
     show(document.getElementById("imagePrefix"), downloadImages);
 
@@ -195,7 +199,7 @@ const inputChange = e => {
     if (e) {
         let key = e.target.name;
         let value = e.target.value;
-        if (key == "import-file") {
+        if (key === "import-file") {
             fr = new FileReader();
             fr.onload = (ev) => {
                 let lines = ev.target.result;
@@ -209,10 +213,10 @@ const inputChange = e => {
             fr.readAsText(e.target.files[0])
         }
         else {
-            if (e.target.type == "checkbox") value = e.target.checked;
+            if (e.target.type === "checkbox") value = e.target.checked;
             options[key] = value;
 
-            if (key == "contextMenus") {
+            if (key === "contextMenus") {
                 if (value) { createMenus() }
                 else { browser.contextMenus.removeAll() }
             }
@@ -229,10 +233,10 @@ const inputKeyup = (e) => {
 }
 
 const buttonClick = (e) => {
-    if (e.target.id == "import") {
+    if (e.target.id === "import") {
         document.getElementById("import-file").click();
     }
-    else if (e.target.id == "export") {
+    else if (e.target.id === "export") {
         console.log("export");
         const json = JSON.stringify(options, null, 2);
         var blob = new Blob([json], { type: "text/json" });
@@ -256,10 +260,10 @@ const loaded = () => {
     restoreOptions();
 
     document.querySelectorAll('input,textarea,button').forEach(input => {
-        if (input.tagName == "TEXTAREA" || input.type == "text") {
+        if (input.tagName === "TEXTAREA" || input.type === "text") {
             input.addEventListener('keyup', inputKeyup);
         }
-        else if (input.tagName == "BUTTON") {
+        else if (input.tagName === "BUTTON") {
             input.addEventListener('click', buttonClick);
         }
         else input.addEventListener('change', inputChange);
@@ -279,7 +283,7 @@ function getCheckedValue(radioObj) {
     if (!radioObj)
         return "";
     var radioLength = radioObj.length;
-    if (radioLength == undefined)
+    if (radioLength === undefined)
         if (radioObj.checked)
             return radioObj.value;
         else
@@ -300,13 +304,13 @@ function setCheckedValue(radioObj, newValue) {
     if (!radioObj)
         return;
     var radioLength = radioObj.length;
-    if (radioLength == undefined) {
-        radioObj.checked = (radioObj.value == newValue.toString());
+    if (radioLength === undefined) {
+        radioObj.checked = (radioObj.value === newValue.toString());
         return;
     }
     for (var i = 0; i < radioLength; i++) {
         radioObj[i].checked = false;
-        if (radioObj[i].value == newValue.toString()) {
+        if (radioObj[i].value === newValue.toString()) {
             radioObj[i].checked = true;
         }
     }

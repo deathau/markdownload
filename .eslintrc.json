@@ -1,0 +1,44 @@
+{
+  "env": {
+    "browser": true,
+    "es2020": true,
+    "webextensions": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "script"
+  },
+  "ignorePatterns": [
+    "src/background/Readability.js",
+    "src/background/turndown.js",
+    "src/background/turndown-plugin-gfm.js",
+    "src/background/moment.min.js",
+    "src/background/apache-mime-types.js",
+    "src/popup/lib/",
+    "src/browser-polyfill.min.js",
+    "node_modules/",
+    "web-ext-artifacts/",
+    "xcode/"
+  ],
+  "rules": {
+    "eqeqeq": ["warn", "always"],
+    "no-empty": ["warn", { "allowEmptyCatch": false }],
+    "no-unused-vars": ["warn", { "args": "none", "caughtErrors": "none" }],
+    "no-var": "warn",
+    "prefer-const": "warn"
+  },
+  "globals": {
+    "browser": "readonly",
+    "chrome": "readonly",
+    "CodeMirror": "readonly",
+    "TurndownService": "readonly",
+    "turndownPluginGfm": "readonly",
+    "Readability": "readonly",
+    "moment": "readonly",
+    "mimedb": "readonly",
+    "getOptions": "readonly",
+    "defaultOptions": "readonly",
+    "createMenus": "readonly",
+    "generateValidFileName": "readonly"
+  }
+}

@@ -59,8 +59,8 @@ async function createMenus() {
         contexts: ["tab"],
         checked: options.downloadImages
       }, () => { });
-    } catch {
-
+    } catch (e) {
+      // tab context menus not supported in this browser (e.g. Chrome)
     }
     // add the download all tabs option to the page context menu as well
     browser.contextMenus.create({

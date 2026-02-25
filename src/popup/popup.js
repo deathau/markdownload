@@ -64,7 +64,9 @@ const toggleIncludeTemplate = options => {
             browser.contextMenus.update("tabtoggle-includeTemplate", {
                 checked: options.includeTemplate
             });
-        } catch { }
+        } catch (e) {
+            // tab context menus not supported in this browser
+        }
         return clipSite()
     }).catch((error) => {
         console.error(error);
@@ -82,7 +84,9 @@ const toggleDownloadImages = options => {
             browser.contextMenus.update("tabtoggle-downloadImages", {
                 checked: options.downloadImages
             });
-        } catch { }
+        } catch (e) {
+            // tab context menus not supported in this browser
+        }
     }).catch((error) => {
         console.error(error);
     });
@@ -215,7 +219,7 @@ async function downloadSelection(e) {
 //function that handles messages from the injected script into the site
 function notify(message) {
     // message for displaying markdown
-    if (message.type == "display.md") {
+    if (message.type === "display.md") {
 
         // set the values from the message
         //document.getElementById("md").value = message.markdown;
