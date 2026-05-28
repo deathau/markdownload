@@ -4,6 +4,20 @@ browser.runtime.getPlatformInfo().then(async platformInfo => {
   console.info(platformInfo, browserInfo);
 });
 
+// Persistent debug log (ring buffer, max 200 lines) written to chrome.storage.local
+async function dbgLog(...args) {
+  const line = `[${new Date().toISOString()}] ` + args.map(a => {
+    try { return (typeof a === 'object') ? JSON.stringify(a) : String(a); } catch { return String(a); }
+  }).join(' ');
+  console.log('[DBG]', line);
+  try {
+    const { _debugLog = [] } = await chrome.storage.local.get('_debugLog');
+    _debugLog.push(line);
+    if (_debugLog.length > 200) _debugLog.splice(0, _debugLog.length - 200);
+    await chrome.storage.local.set({ _debugLog });
+  } catch(e) { /* storage full or unavailable */ }
+}
+
 // add notification listener for foreground page messages
 browser.runtime.onMessage.addListener(notify);
 // create context menus
@@ -317,13 +331,13 @@ function textReplace(string, article, disallowedChars = null) {
 }
 
 // function to convert an article info object into markdown
-async function convertArticleToMarkdown(article, downloadImages = null) {
+async function convertArticleToMarkdown(article, downloadImages = null, tabId = null) {
   const options = await getOptions();
   if (downloadImages != null) {
     options.downloadImages = downloadImages;
   }
 
-  // substitute front and backmatter templates if necessary
+  // substitute front and backmatter templates (uses moment — must run in SW)
   if (options.includeTemplate) {
     options.frontmatter = textReplace(options.frontmatter, article) + '\n';
     options.backmatter = '\n' + textReplace(options.backmatter, article);
@@ -335,7 +349,33 @@ async function convertArticleToMarkdown(article, downloadImages = null) {
   options.imagePrefix = textReplace(options.imagePrefix, article, options.disallowedChars)
     .split('/').map(s=>generateValidFileName(s, options.disallowedChars)).join('/');
 
-  let result = turndown(article.content, options, article);
+  let result;
+
+  if (tabId) {
+    // Run Turndown inside the tab where document/DOMParser are always available
+    try {
+      dbgLog('convertArticleToMarkdown: injecting into tabId', tabId);
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['/background/turndown.js'] });
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['/background/turndown-plugin-gfm.js'] });
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['/background/convert-article.js'] });
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (content, opts, art) => turndownInPage(content, opts, art),
+        args: [article.content, options, article]
+      });
+      result = results?.[0]?.result;
+      dbgLog('convertArticleToMarkdown: tab conversion ok, markdown length', result?.markdown?.length);
+    } catch (e) {
+      dbgLog('convertArticleToMarkdown: tab conversion FAILED', e.message);
+      console.error('Tab-based conversion failed, falling back to SW:', e);
+    }
+  }
+
+  if (!result) {
+    dbgLog('convertArticleToMarkdown: falling back to SW turndown');
+    result = turndown(article.content, options, article);
+  }
+
   if (options.downloadImages && options.downloadMode == 'downloadsApi') {
     // pre-download the images
     result = await preDownloadImages(result.imageList, result.markdown);
@@ -373,81 +413,55 @@ async function preDownloadImages(imageList, markdown) {
   // however, in some cases we need to download images *first* so we can get the
   // proper file extension to put into the markdown.
   // so... here we are waiting for all the downloads and replacements to complete
-  await Promise.all(Object.entries(imageList).map(([src, filename]) => new Promise((resolve, reject) => {
-        // we're doing an xhr so we can get it as a blob and determine filetype
-        // before the final save
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', src);
-        xhr.responseType = "blob";
-        xhr.onload = async function () {
-          // here's the returned blob
-          const blob = xhr.response;
+  await Promise.all(Object.entries(imageList).map(async ([src, filename]) => {
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
 
-          if (options.imageStyle == 'base64') {
-            var reader = new FileReader();
-            reader.onloadend = function () {
-              markdown = markdown.replaceAll(src, reader.result)
-              resolve()
-            }
-            reader.readAsDataURL(blob);
+      if (options.imageStyle == 'base64') {
+        const dataUrl = await blobToDataUrl(blob);
+        markdown = markdown.replaceAll(src, dataUrl);
+      } else {
+        let newFilename = filename;
+        if (newFilename.endsWith('.idunno')) {
+          newFilename = filename.replace('.idunno', '.' + mimedb[blob.type]);
+          if (!options.imageStyle.startsWith("obsidian")) {
+            markdown = markdown.replaceAll(filename.split('/').map(s => encodeURI(s)).join('/'), newFilename.split('/').map(s => encodeURI(s)).join('/'));
+          } else {
+            markdown = markdown.replaceAll(filename, newFilename);
           }
-          else {
-
-            let newFilename = filename;
-            if (newFilename.endsWith('.idunno')) {
-              // replace any unknown extension with a lookup based on mime type
-              newFilename = filename.replace('.idunno', '.' + mimedb[blob.type]);
-
-              // and replace any instances of this in the markdown
-              // remember to url encode for replacement if it's not an obsidian link
-              if (!options.imageStyle.startsWith("obsidian")) {
-                markdown = markdown.replaceAll(filename.split('/').map(s => encodeURI(s)).join('/'), newFilename.split('/').map(s => encodeURI(s)).join('/'))
-              }
-              else {
-                markdown = markdown.replaceAll(filename, newFilename)
-              }
-            }
-
-            // create an object url for the blob (no point fetching it twice)
-            const blobUrl = URL.createObjectURL(blob);
-
-            // add this blob into the new image list
-            newImageList[blobUrl] = newFilename;
-
-            // resolve this promise now
-            // (the file might not be saved yet, but the blob is and replacements are complete)
-            resolve();
-          }
-        };
-        xhr.onerror = function () {
-          reject('A network error occurred attempting to download ' + src);
-        };
-        xhr.send();
-  })));
+        }
+        const dataUrl = await blobToDataUrl(blob);
+        newImageList[dataUrl] = newFilename;
+      }
+    } catch(e) {
+      console.warn('Failed to download image', src, e);
+    }
+  }));
 
   return { imageList: newImageList, markdown: markdown };
 }
 
 // function to actually download the markdown file
-async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsFolder = '') {
+async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsFolder = '', forceSilent = false) {
   // get the options
   const options = await getOptions();
+  if (forceSilent) options.saveAs = false;
   
   // download via the downloads API
   if (options.downloadMode == 'downloadsApi' && browser.downloads) {
     
-    // create the object url with markdown data as a blob
-    const url = URL.createObjectURL(new Blob([markdown], {
-      type: "text/markdown;charset=utf-8"
-    }));
+    // create a data url (blob URLs are not available in service workers)
+    const url = `data:text/markdown;charset=utf-8,${encodeURIComponent(markdown)}`;
   
     try {
 
       if(mdClipsFolder && !mdClipsFolder.endsWith('/')) mdClipsFolder += '/';
+      const safeTitle = generateValidFileName(title, options.disallowedChars) || 'untitled';
       // start the download
       const id = await browser.downloads.download({
         url: url,
-        filename: mdClipsFolder + title + ".md",
+        filename: mdClipsFolder + safeTitle + ".md",
         saveAs: options.saveAs
       });
 
@@ -459,7 +473,7 @@ async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsF
         // get the relative path of the markdown file (if any) for image path
         let destPath = mdClipsFolder + title.substring(0, title.lastIndexOf('/'));
         if(destPath && !destPath.endsWith('/')) destPath += '/';
-        Object.entries(imageList).forEach(async ([src, filename]) => {
+        Object.entries(imageList || {}).forEach(async ([src, filename]) => {
           // start the download of the image
           const imgId = await browser.downloads.download({
             url: src,
@@ -500,7 +514,7 @@ async function downloadMarkdown(markdown, title, tabId, imageList = {}, mdClipsF
       await ensureScripts(tabId);
       const filename = mdClipsFolder + generateValidFileName(title, options.disallowedChars) + ".md";
       const code = `downloadMarkdown("${filename}","${base64EncodeUnicode(markdown)}");`
-      await browser.tabs.executeScript(tabId, {code: code});
+      await chrome.scripting.executeScript({target: {tabId}, func: (c) => eval(c), args: [code]});
     }
     catch (error) {
       // This could happen if the extension is not allowed to run code in
@@ -515,8 +529,7 @@ function downloadListener(id, url) {
     if (delta.id === id && delta.state && delta.state.current == "complete") {
       // detatch this listener
       browser.downloads.onChanged.removeListener(self);
-      //release the url for the blob
-      URL.revokeObjectURL(url);
+      // data URLs don't need revocation
     }
   }
   return self;
@@ -533,21 +546,27 @@ function base64EncodeUnicode(str) {
 }
 
 //function that handles messages from the injected script into the site
-async function notify(message) {
+async function notify(message, sender) {
   const options = await this.getOptions();
   // message for initial clipping of the dom
   if (message.type == "clip") {
-    // get the article info from the passed in dom
-    const article = await getArticleFromDom(message.dom);
-
-    // if selection info was passed in (and we're to clip the selection)
-    // replace the article content
-    if (message.selection && message.clipSelection) {
-      article.content = message.selection;
+    // Use the tab context to parse with Readability (DOMParser not available in MV3 SW)
+    const tabId = sender && sender.tab && sender.tab.id;
+    let article;
+    if (tabId) {
+      article = await getArticleFromContent(tabId, !!(message.selection && message.clipSelection));
+    } else {
+      // fallback: try to get the active tab
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (activeTab) {
+        article = await getArticleFromContent(activeTab.id, !!(message.selection && message.clipSelection));
+      }
     }
-    
+
+    if (!article) return;
+
     // convert the article to markdown
-    const { markdown, imageList } = await convertArticleToMarkdown(article);
+    const { markdown, imageList } = await convertArticleToMarkdown(article, null, tabId || (await chrome.tabs.query({active:true,currentWindow:true}))[0]?.id);
 
     // format the title
     article.title = await formatTitle(article);
@@ -561,6 +580,45 @@ async function notify(message) {
   // message for triggering download
   else if (message.type == "download") {
     downloadMarkdown(message.markdown, message.title, message.tab.id, message.imageList, message.mdClipsFolder);
+  }
+  // ── Page Saver handlers ──────────────────────────────────────────────────
+  else if (message.type === 'ps-crawl-domain') {
+    psCrawlDomain(message.tabId, message.url);
+  }
+  else if (message.type === 'ps-stop-crawl') {
+    _crawlState.running = false;
+  }
+  else if (message.type === 'ps-open-links') {
+    psOpenLinks(message.tabId);
+  }
+  else if (message.type === 'ps-save-html') {
+    psSaveTabs(message.tabs, 'html');
+  }
+  else if (message.type === 'ps-save-png') {
+    psSaveTabs(message.tabs, 'png');
+  }
+  else if (message.type === 'ps-save-pdf') {
+    psSaveTabs(message.tabs, 'pdf');
+  }
+  else if (message.type === 'ps-save-md-all') {
+    const mdTabs = (message.tabs || []).filter(t =>
+      t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('chrome-extension://') && !t.url.startsWith('about:')
+    );
+    dbgLog('ps-save-md-all: processing', mdTabs.length, 'tabs');
+    // Sequential — await each tab so SW stays alive and errors don't cascade
+    ;(async () => {
+      for (const tab of mdTabs) {
+        try {
+          dbgLog('ps-save-md-all: saving tab', tab.id, tab.title);
+          await downloadMarkdownFromContext({ menuItemId: 'download-markdown-all' }, tab, true);
+          dbgLog('ps-save-md-all: done', tab.id);
+        } catch (e) {
+          dbgLog('ps-save-md-all: FAILED tab', tab.id, e.message);
+          console.error(`[md-all] failed for "${tab.title}":`, e);
+        }
+      }
+      dbgLog('ps-save-md-all: all done');
+    })();
   }
 }
 
@@ -661,12 +719,12 @@ async function toggleSetting(setting, options = null) {
 
 // this function ensures the content script is loaded (and loads it if it isn't)
 async function ensureScripts(tabId) {
-  const results = await browser.tabs.executeScript(tabId, { code: "typeof getSelectionAndDom === 'function';" })
+  const results = await chrome.scripting.executeScript({target: {tabId}, func: () => typeof getSelectionAndDom === 'function'})
   // The content script's last expression will be true if the function
   // has been defined. If this is not the case, then we need to run
   // pageScraper.js to define function getSelectionAndDom.
-  if (!results || results[0] !== true) {
-    await browser.tabs.executeScript(tabId, {file: "/contentScript/contentScript.js"});
+  if (!results || results[0].result !== true) {
+    await chrome.scripting.executeScript({target: {tabId}, files: ["/contentScript/contentScript.js"]});
   }
 }
 
@@ -683,8 +741,7 @@ async function getArticleFromDom(domString) {
   const math = {};
 
   const storeMathInfo = (el, mathInfo) => {
-    let randomId = URL.createObjectURL(new Blob([]));
-    randomId = randomId.substring(randomId.length - 36);
+    const randomId = crypto.randomUUID();
     el.id = randomId;
     math[randomId] = mathInfo;
   };
@@ -702,7 +759,7 @@ async function getArticleFromDom(domString) {
     const display = mathJax3Node.getAttribute('display')
     const inline = !(display && display === 'true')
 
-    const mathNode = document.createElement(inline ? "i" : "p")
+    const mathNode = dom.createElement(inline ? "i" : "p")
     mathNode.textContent = tex;
     mathJax3Node.parentNode.insertBefore(mathNode, mathJax3Node.nextSibling)
     mathJax3Node.parentNode.removeChild(mathJax3Node)
@@ -799,23 +856,24 @@ async function getArticleFromDom(domString) {
 // get Readability article info from the content of the tab id passed in
 // `selection` is a bool indicating whether we should just get the selected text
 async function getArticleFromContent(tabId, selection = false) {
-  // run the content script function to get the details
-  const results = await browser.tabs.executeScript(tabId, { code: "getSelectionAndDom()" });
-
-  // make sure we actually got a valid result
-  if (results && results[0] && results[0].dom) {
-    const article = await getArticleFromDom(results[0].dom, selection);
-
-    // if we're to grab the selection, and we've selected something,
-    // replace the article content with the selection
-    if (selection && results[0].selection) {
-      article.content = results[0].selection;
-    }
-
-    //return the article
-    return article;
+  // inject dependencies into the tab (which has document/DOMParser)
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['/background/Readability.js'] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['/contentScript/get-article.js'] });
+  } catch(e) {
+    console.warn('Script injection warning:', e.message);
   }
-  else return null;
+
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (sel) => {
+      if (typeof getArticleFromCurrentPage !== 'function') return null;
+      return getArticleFromCurrentPage(sel);
+    },
+    args: [selection]
+  });
+
+  return results?.[0]?.result || null;
 }
 
 // function to apply the title template
@@ -854,14 +912,14 @@ async function formatObsidianFolder(article) {
 }
 
 // function to download markdown, triggered by context menu
-async function downloadMarkdownFromContext(info, tab) {
+async function downloadMarkdownFromContext(info, tab, silent = false) {
   await ensureScripts(tab.id);
   const article = await getArticleFromContent(tab.id, info.menuItemId == "download-markdown-selection");
   const title = await formatTitle(article);
-  const { markdown, imageList } = await convertArticleToMarkdown(article);
+  const { markdown, imageList } = await convertArticleToMarkdown(article, null, tab.id);
   // format the mdClipsFolder
   const mdClipsFolder = await formatMdClipsFolder(article);
-  await downloadMarkdown(markdown, title, tab.id, imageList, mdClipsFolder); 
+  await downloadMarkdown(markdown, title, tab.id, imageList, mdClipsFolder, silent); 
 
 }
 
@@ -871,7 +929,7 @@ async function copyTabAsMarkdownLink(tab) {
     await ensureScripts(tab.id);
     const article = await getArticleFromContent(tab.id);
     const title = await formatTitle(article);
-    await browser.tabs.executeScript(tab.id, { code: `copyToClipboard("[${title}](${article.baseURI})")` });
+    await chrome.scripting.executeScript({target: {tabId: tab.id}, func: (text) => copyToClipboard(text), args: [`[${title}](${article.baseURI})`]});
     // await navigator.clipboard.writeText(`[${title}](${article.baseURI})`);
   }
   catch (error) {
@@ -900,7 +958,7 @@ async function copyTabAsMarkdownLinkAll(tab) {
     };
     
     const markdown = links.join(`\n`)
-    await browser.tabs.executeScript(tab.id, { code: `copyToClipboard(${JSON.stringify(markdown)})` });
+    await chrome.scripting.executeScript({target: {tabId: tab.id}, func: (text) => copyToClipboard(text), args: [markdown]});
 
   }
   catch (error) {
@@ -930,7 +988,7 @@ async function copySelectedTabAsMarkdownLink(tab) {
     };
 
     const markdown = links.join(`\n`)
-    await browser.tabs.executeScript(tab.id, { code: `copyToClipboard(${JSON.stringify(markdown)})` });
+    await chrome.scripting.executeScript({target: {tabId: tab.id}, func: (text) => copyToClipboard(text), args: [markdown]});
 
   }
   catch (error) {
@@ -958,10 +1016,10 @@ async function copyMarkdownFromContext(info, tab) {
       options.frontmatter = options.backmatter = '';
       const article = await getArticleFromContent(tab.id, false);
       const { markdown } = turndown(`<a href="${info.linkUrl}">${info.linkText || info.selectionText}</a>`, { ...options, downloadImages: false }, article);
-      await browser.tabs.executeScript(tab.id, {code: `copyToClipboard(${JSON.stringify(markdown)})`});
+      await chrome.scripting.executeScript({target: {tabId: tab.id}, func: (text) => copyToClipboard(text), args: [markdown]});
     }
     else if (info.menuItemId == "copy-markdown-image") {
-      await browser.tabs.executeScript(tab.id, {code: `copyToClipboard("![](${info.srcUrl})")`});
+      await chrome.scripting.executeScript({target: {tabId: tab.id}, func: (url) => copyToClipboard(`![](${url})`), args: [info.srcUrl]});
     }
     else if(info.menuItemId == "copy-markdown-obsidian") {
       const article = await getArticleFromContent(tab.id, info.menuItemId == "copy-markdown-obsidian");
@@ -969,8 +1027,8 @@ async function copyMarkdownFromContext(info, tab) {
       const options = await getOptions();
       const obsidianVault = options.obsidianVault;
       const obsidianFolder = await formatObsidianFolder(article);
-      const { markdown } = await convertArticleToMarkdown(article, downloadImages = false);
-      await browser.tabs.executeScript(tab.id, { code: `copyToClipboard(${JSON.stringify(markdown)})` });
+      const { markdown } = await convertArticleToMarkdown(article, false, tab.id);
+      await chrome.scripting.executeScript({target: {tabId: tab.id}, func: (text) => copyToClipboard(text), args: [markdown]});
       await chrome.tabs.update({url: "obsidian://advanced-uri?vault=" + obsidianVault + "&clipboard=true&mode=new&filepath=" + obsidianFolder + generateValidFileName(title)});
     }
     else if(info.menuItemId == "copy-markdown-obsall") {
@@ -979,14 +1037,14 @@ async function copyMarkdownFromContext(info, tab) {
       const options = await getOptions();
       const obsidianVault = options.obsidianVault;
       const obsidianFolder = await formatObsidianFolder(article);
-      const { markdown } = await convertArticleToMarkdown(article, downloadImages = false);
-      await browser.tabs.executeScript(tab.id, { code: `copyToClipboard(${JSON.stringify(markdown)})` });
+      const { markdown } = await convertArticleToMarkdown(article, false, tab.id);
+      await chrome.scripting.executeScript({target: {tabId: tab.id}, func: (text) => copyToClipboard(text), args: [markdown]});
       await browser.tabs.update({url: "obsidian://advanced-uri?vault=" + obsidianVault + "&clipboard=true&mode=new&filepath=" + obsidianFolder + generateValidFileName(title)});
     }
     else {
       const article = await getArticleFromContent(tab.id, info.menuItemId == "copy-markdown-selection");
-      const { markdown } = await convertArticleToMarkdown(article, downloadImages = false);
-      await browser.tabs.executeScript(tab.id, { code: `copyToClipboard(${JSON.stringify(markdown)})` });
+      const { markdown } = await convertArticleToMarkdown(article, false, tab.id);
+      await chrome.scripting.executeScript({target: {tabId: tab.id}, func: (text) => copyToClipboard(text), args: [markdown]});
     }
   }
   catch (error) {
@@ -1023,4 +1081,221 @@ if (!String.prototype.replaceAll) {
 		return this.replace(new RegExp(str, 'g'), newStr);
 
 	};
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Page Saver — HTML / PNG / PDF / open-links
+// ════════════════════════════════════════════════════════════════════════════
+
+function psTimestamp() {
+  // moment.js is loaded in background
+  return moment().format('YYYY-MM-DD_HH-mm');
+}
+
+function psSanitize(name) {
+  return (name || 'page').replace(/[\\/:*?"<>|]/g, '_').substring(0, 100);
+}
+
+async function psDownloadBlob(blob, filename) {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  const url = `data:${blob.type};base64,${btoa(binary)}`;
+  return browser.downloads.download({ url, filename, saveAs: false, conflictAction: 'uniquify' });
+}
+
+function psBase64ToBlob(b64, mime) {
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// Open all links from a tab with 3-second delay between each
+async function psOpenLinks(tabId) {
+  const results = await chrome.scripting.executeScript({target: {tabId}, func: () => {
+    const seen = new Set();
+    const urls = [];
+    document.querySelectorAll('a[href]').forEach(a => {
+      try {
+        const url = new URL(a.href, location.href).href;
+        if (!seen.has(url) && !url.startsWith('javascript:') && !url.startsWith('mailto:')) {
+          seen.add(url); urls.push(url);
+        }
+      } catch(e) {}
+    });
+    return urls;
+  }});
+
+  const urls = results[0].result || [];
+  for (const url of urls) {
+    await new Promise(r => setTimeout(r, 3000));
+    browser.tabs.create({ url, active: false });
+  }
+}
+
+// Save tab as HTML (rendered DOM)
+async function psTabToHtml(tab, folder) {
+  const results = await chrome.scripting.executeScript({target: {tabId: tab.id}, func: () => '<!DOCTYPE html>\n' + document.documentElement.outerHTML});
+  const html = results[0].result;
+  const title = psSanitize(tab.title);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  return psDownloadBlob(blob, `page-saver/${folder}/html/${title}.html`);
+}
+
+// Save tab as PNG screenshot
+async function psTabToPng(tab, folder) {
+  const title = psSanitize(tab.title);
+  // Activate tab briefly (required for captureVisibleTab)
+  const [prev] = await browser.tabs.query({ active: true, currentWindow: true });
+  await browser.tabs.update(tab.id, { active: true });
+  await new Promise(r => setTimeout(r, 400));
+  const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+  if (prev && prev.id !== tab.id) await browser.tabs.update(prev.id, { active: true });
+  const b64 = dataUrl.split(',')[1];
+  return psDownloadBlob(psBase64ToBlob(b64, 'image/png'), `page-saver/${folder}/screenshots/${title}.png`);
+}
+
+// Save tab as PDF.
+// single=true → opens browser print dialog (user picks filename, no black bg)
+// single=false → CDP Page.printToPDF with printBackground:false → saves to downloads
+async function psTabToPdf(tab, folder, single = false) {
+  if (single) {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => window.print() });
+    return;
+  }
+  const title = psSanitize(tab.title);
+  await new Promise((res, rej) =>
+    chrome.debugger.attach({ tabId: tab.id }, '1.3', () =>
+      chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : res()
+    )
+  );
+  try {
+    const result = await new Promise((res, rej) =>
+      chrome.debugger.sendCommand(
+        { tabId: tab.id },
+        'Page.printToPDF',
+        { printBackground: false, paperWidth: 8.27, paperHeight: 11.69,
+          marginTop: 0.4, marginBottom: 0.4, marginLeft: 0.4, marginRight: 0.4 },
+        r => chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : res(r)
+      )
+    );
+    return psDownloadBlob(psBase64ToBlob(result.data, 'application/pdf'), `page-saver/${folder}/pdf/${title}.pdf`);
+  } finally {
+    chrome.debugger.detach({ tabId: tab.id });
+  }
+}
+
+// Batch runner — all tabs for a given format
+async function psSaveTabs(tabs, format) {
+  const folder = psTimestamp();
+  const allowed = (tabs || []).filter(t =>
+    t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('chrome-extension://')
+  );
+
+  for (const tab of allowed) {
+    try {
+      if (format === 'html') await psTabToHtml(tab, folder);
+      else if (format === 'png')  await psTabToPng(tab, folder);
+      else if (format === 'pdf')  await psTabToPdf(tab, folder, allowed.length === 1);
+    } catch (e) {
+      console.error(`[page-saver] ${format} failed for "${tab.title}":`, e.message || e);
+    }
+  }
+}
+
+// Recursive same-domain crawler
+const _crawlState = { running: false, visited: new Set(), queue: [] };
+
+async function psCrawlDomain(startTabId, startUrl) {
+  if (_crawlState.running) return; // prevent double-start
+  _crawlState.running = true;
+  _crawlState.visited = new Set();
+  _crawlState.queue = [];
+
+  const domain = new URL(startUrl).hostname;
+  _crawlState.visited.add(normalizeUrl(startUrl));
+
+  const firstLinks = await psGetSameDomainLinks(startTabId, domain, _crawlState.visited);
+  _crawlState.queue.push(...firstLinks);
+
+  while (_crawlState.running && _crawlState.queue.length > 0) {
+    const url = _crawlState.queue.shift();
+    const norm = normalizeUrl(url);
+    if (_crawlState.visited.has(norm)) continue;
+    _crawlState.visited.add(norm);
+
+    // open tab and wait for it to load
+    const tab = await chrome.tabs.create({ url, active: false });
+    await waitForTabLoad(tab.id);
+    await new Promise(r => setTimeout(r, 2000)); // let JS render
+
+    try {
+      const newLinks = await psGetSameDomainLinks(tab.id, domain, _crawlState.visited);
+      _crawlState.queue.push(...newLinks);
+    } catch(e) {
+      console.warn('[crawl] could not get links from', url, e.message);
+    }
+
+    await new Promise(r => setTimeout(r, 1500));
+  }
+
+  _crawlState.running = false;
+}
+
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url);
+    u.hash = '';
+    // remove trailing slash for consistency
+    u.pathname = u.pathname.replace(/\/$/, '') || '/';
+    return u.toString();
+  } catch { return url; }
+}
+
+async function psGetSameDomainLinks(tabId, domain, visited) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (domain) => {
+      const seen = new Set();
+      return Array.from(document.querySelectorAll('a[href]'))
+        .map(a => { try { return new URL(a.href, location.href).href; } catch { return null; } })
+        .filter(url => {
+          if (!url) return false;
+          try {
+            const u = new URL(url);
+            if (u.hostname !== domain) return false;
+            if (u.hash && u.pathname === location.pathname) return false; // anchor-only link
+            const key = u.origin + u.pathname;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          } catch { return false; }
+        });
+    },
+    args: [domain]
+  });
+  const links = results?.[0]?.result || [];
+  return links.filter(url => !visited.has(normalizeUrl(url)));
+}
+
+function waitForTabLoad(tabId) {
+  return new Promise(resolve => {
+    chrome.tabs.get(tabId, tab => {
+      if (tab && tab.status === 'complete') { resolve(); return; }
+      const listener = (id, info) => {
+        if (id === tabId && info.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
+      };
+      chrome.tabs.onUpdated.addListener(listener);
+      // safety timeout
+      setTimeout(resolve, 15000);
+    });
+  });
 }

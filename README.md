@@ -1,3 +1,35 @@
+# MarkDownload — Page Saver Fork
+
+> **Fork of [deathau/markdownload](https://github.com/deathau/markdownload) by [@deathau](https://github.com/deathau)**
+> Extended by [@neo37](https://github.com/neo37) — Manifest V3 upgrade + bulk save features.
+>
+> **Primary use case: downloading entire wikis, documentation sites, or knowledge bases to local Markdown/HTML/PDF files.**
+
+## How to use (Chrome)
+
+The main idea is a two-step workflow:
+
+1. **Open all links** — navigate to any index or list page (e.g. a wiki, docs site, or table of contents), then click **"Open all links in new tabs (3s delay)"**. The extension opens every link on the page as a background tab, one every 3 seconds, giving each page time to fully render.
+
+2. **Save all tabs** — once the tabs are loaded, click one of the **"All tabs →"** buttons to bulk-export everything at once:
+   - **All → Markdown** — converts each page using Readability + Turndown (best for text content)
+   - **All → HTML** — saves the full rendered DOM including dynamic content
+   - **All → Screenshots** — captures the visible viewport of each tab as PNG
+   - **All → PDF** — silently exports each tab as a PDF via Chrome DevTools Protocol (no print dialog)
+
+All files land in `~/Downloads/page-saver/YYYY-MM-DD_HH-mm/` — each session gets its own timestamped folder.
+
+## What's new in this fork
+
+- **Manifest V3** — upgraded from MV2 so the extension loads in modern Chrome (127+)
+- **Open all links** with configurable delay between tabs
+- **Bulk save** — current tab or all open tabs → Markdown / HTML / PNG / PDF
+- **Silent PDF export** via Chrome DevTools Protocol (`Page.printToPDF`), no print dialog
+- **Timestamped output folders** — sessions never overwrite each other
+- **Recursive domain crawler** — opens every page on the current domain by following links recursively, with URL normalization and deduplication (no duplicate pages opened). Useful for archiving an entire wiki or documentation site. Includes a Stop button to halt the crawl at any time.
+
+---
+
 # MarkDownload - Markdown Web Clipper
 
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/deathau/markdownload?style=for-the-badge&sort=semver)](https://github.com/deathau/markdownload/releases/latest)

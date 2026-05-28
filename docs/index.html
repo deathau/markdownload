@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarkDownload — Installation Guide</title>
+  <style>
+    :root {
+      --primary: #4A90E2;
+      --bg: #ffffff;
+      --fg: #1a1a1a;
+      --muted: #666;
+      --border: #e8e8e8;
+      --code-bg: #f5f7fa;
+      --card: #f9fafb;
+      --radius: 10px;
+      --shadow: 0 2px 16px rgba(0,0,0,0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a2e;
+        --fg: #e8e8e8;
+        --muted: #999;
+        --border: #2e2e4a;
+        --code-bg: #252540;
+        --card: #20203a;
+        --shadow: 0 2px 16px rgba(0,0,0,0.4);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.7;
+      font-size: 16px;
+    }
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 48px 24px 36px;
+      text-align: center;
+    }
+    header img { width: 72px; height: 72px; margin-bottom: 16px; border-radius: 16px; }
+    header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+    header p { font-size: 1.05rem; opacity: 0.9; max-width: 520px; margin: 0 auto; }
+    .lang-bar {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .lang-btn {
+      padding: 6px 18px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .container { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
+    .section { margin-bottom: 40px; }
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary);
+      color: var(--primary);
+    }
+    .steps { display: flex; flex-direction: column; gap: 16px; }
+    .step {
+      display: flex;
+      gap: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-top: 2px;
+    }
+    .step-body strong { display: block; margin-bottom: 4px; font-size: 0.95rem; }
+    .step-body span { color: var(--muted); font-size: 0.9rem; }
+    code {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 0.85rem;
+    }
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 1rem;
+      box-shadow: var(--shadow);
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .download-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .download-btn svg { width: 20px; height: 20px; fill: #fff; }
+    .btn-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .alt-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card);
+      color: var(--primary);
+      text-decoration: none;
+      padding: 12px 22px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid var(--primary);
+      transition: all 0.2s;
+    }
+    .alt-btn:hover { background: var(--primary); color: #fff; }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .feature-card .icon { font-size: 1.6rem; margin-bottom: 8px; }
+    .feature-card strong { display: block; margin-bottom: 4px; font-size: 0.9rem; }
+    .feature-card span { color: var(--muted); font-size: 0.83rem; }
+    .note {
+      background: var(--code-bg);
+      border-left: 3px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+    [data-lang] { display: none; }
+    [data-lang].visible { display: block; }
+    .inline-flex { display: inline-flex !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="https://raw.githubusercontent.com/neo37/markdownload/main/src/icons/appicon-128x128.png"
+       onerror="this.style.display='none'" alt="MarkDownload icon">
+  <h1>MarkDownload</h1>
+  <p data-lang="en" class="visible">Web Clipper — save any page as Markdown with one click</p>
+  <p data-lang="ru">Веб-клипер — сохраняй любую страницу как Markdown одним кликом</p>
+</header>
+
+<div class="lang-bar">
+  <button class="lang-btn active" onclick="setLang('en')">🇬🇧 English</button>
+  <button class="lang-btn" onclick="setLang('ru')">🇷🇺 Русский</button>
+</div>
+
+<div class="container">
+
+  <!-- DOWNLOAD SECTION -->
+  <div class="section">
+    <h2 data-lang="en" class="visible">Download</h2>
+    <h2 data-lang="ru">Скачать</h2>
+
+    <div class="btn-row">
+      <a class="download-btn" href="https://github.com/neo37/markdownload/releases/latest/download/markdownload-v3.4.0.zip" id="dl-zip">
+        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        <span data-lang="en" class="visible">Download ZIP v3.4.0</span>
+        <span data-lang="ru">Скачать ZIP v3.4.0</span>
+      </a>
+      <a class="alt-btn" href="https://github.com/neo37/markdownload/releases/latest" target="_blank">
+        <span data-lang="en" class="visible">All releases →</span>
+        <span data-lang="ru">Все релизы →</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- INSTALL SECTION -->
+  <div class="section">
+    <h2 data-lang="en" class="visible">How to install in Chrome</h2>
+    <h2 data-lang="ru">Как установить в Chrome</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong data-lang="en" class="visible">Download and unzip</strong>
+          <strong data-lang="ru">Скачай и распакуй</strong>
+          <span data-lang="en" class="visible">Click the button above to download the ZIP file, then extract it to any folder on your computer.</span>
+          <span data-lang="ru">Нажми кнопку выше, скачай ZIP-архив и распакуй его в любую папку на компьютере.</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong data-lang="en" class="visible">Open Extensions page</strong>
+          <strong data-lang="ru">Открой страницу расширений</strong>
+          <span data-lang="en" class="visible">In Chrome, navigate to <code>chrome://extensions</code> or go to Menu → More tools → Extensions.</span>
+          <span data-lang="ru">В Chrome открой <code>chrome://extensions</code> или перейди в Меню → Дополнительные инструменты → Расширения.</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong data-lang="en" class="visible">Enable Developer mode</strong>
+          <strong data-lang="ru">Включи режим разработчика</strong>
+          <span data-lang="en" class="visible">Toggle the <strong>Developer mode</strong> switch in the top-right corner of the Extensions page.</span>
+          <span data-lang="ru">Переключи тумблер <strong>Режим разработчика</strong> в правом верхнем углу страницы расширений.</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong data-lang="en" class="visible">Load unpacked</strong>
+          <strong data-lang="ru">Загрузи распакованное расширение</strong>
+          <span data-lang="en" class="visible">Click <strong>Load unpacked</strong> and select the folder you extracted in step 1. Done!</span>
+          <span data-lang="ru">Нажми <strong>Загрузить распакованное</strong> и выбери папку из шага 1. Готово!</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong data-lang="en" class="visible">Pin the extension</strong>
+          <strong data-lang="ru">Закрепи расширение</strong>
+          <span data-lang="en" class="visible">Click the puzzle icon in Chrome toolbar, find MarkDownload and click the pin icon to keep it visible.</span>
+          <span data-lang="ru">Нажми иконку пазла на панели Chrome, найди MarkDownload и нажми иконку закрепления.</span>
+        </div>
+      </div>
+    </div>
+
+    <br>
+    <div class="note" data-lang="en">
+      Works on Chrome 90+, Edge, Brave, and any Chromium-based browser. Also available for Firefox via <a href="https://addons.mozilla.org/en-US/firefox/addon/markdownload/" target="_blank">Mozilla Add-ons</a>.
+    </div>
+    <div class="note" data-lang="ru">
+      Работает в Chrome 90+, Edge, Brave и любом браузере на Chromium. Также доступно для Firefox через <a href="https://addons.mozilla.org/ru/firefox/addon/markdownload/" target="_blank">Mozilla Add-ons</a>.
+    </div>
+  </div>
+
+  <!-- FEATURES SECTION -->
+  <div class="section">
+    <h2 data-lang="en" class="visible">Features</h2>
+    <h2 data-lang="ru">Возможности</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">📄</div>
+        <strong data-lang="en" class="visible">Save as Markdown</strong>
+        <strong data-lang="ru">Сохранить как Markdown</strong>
+        <span data-lang="en" class="visible">Convert any web page to clean .md with one click</span>
+        <span data-lang="ru">Конвертируй любую страницу в чистый .md одним кликом</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📦</div>
+        <strong data-lang="en" class="visible">Bulk export</strong>
+        <strong data-lang="ru">Массовый экспорт</strong>
+        <span data-lang="en" class="visible">Save all open tabs as Markdown, HTML, PNG or PDF at once</span>
+        <span data-lang="ru">Сохрани все вкладки как Markdown, HTML, PNG или PDF одним действием</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🕷️</div>
+        <strong data-lang="en" class="visible">Domain crawler</strong>
+        <strong data-lang="ru">Краулер домена</strong>
+        <span data-lang="en" class="visible">Recursively save every page of a site as Markdown</span>
+        <span data-lang="ru">Рекурсивно сохрани весь сайт как Markdown</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🖼️</div>
+        <strong data-lang="en" class="visible">Download images</strong>
+        <strong data-lang="ru">Скачивание картинок</strong>
+        <span data-lang="en" class="visible">Optionally download all images alongside the .md file</span>
+        <span data-lang="ru">Опционально скачивай все изображения вместе с .md файлом</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📐</div>
+        <strong data-lang="en" class="visible">Templates</strong>
+        <strong data-lang="ru">Шаблоны</strong>
+        <span data-lang="en" class="visible">Front/back matter templates with date, title, URL variables</span>
+        <span data-lang="ru">Шаблоны front/back matter с переменными: дата, заголовок, URL</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⌨️</div>
+        <strong data-lang="en" class="visible">Keyboard shortcuts</strong>
+        <strong data-lang="ru">Горячие клавиши</strong>
+        <span data-lang="en" class="visible">Alt+Shift+M to open, Alt+Shift+D to download directly</span>
+        <span data-lang="ru">Alt+Shift+M для открытия, Alt+Shift+D для сохранения</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOURCE SECTION -->
+  <div class="section">
+    <h2 data-lang="en" class="visible">Source code</h2>
+    <h2 data-lang="ru">Исходный код</h2>
+    <p data-lang="en" class="visible" style="margin-bottom:14px;color:var(--muted)">
+      Open source, fork of <a href="https://github.com/deathau/markdownload" target="_blank" style="color:var(--primary)">deathau/markdownload</a> with Chrome MV3 support and Page Saver features.
+    </p>
+    <p data-lang="ru" style="margin-bottom:14px;color:var(--muted)">
+      Открытый исходный код, форк <a href="https://github.com/deathau/markdownload" target="_blank" style="color:var(--primary)">deathau/markdownload</a> с поддержкой Chrome MV3 и функциями Page Saver.
+    </p>
+    <a class="alt-btn" href="https://github.com/neo37/markdownload" target="_blank">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub →
+    </a>
+  </div>
+
+</div>
+
+<footer>
+  <span data-lang="en" class="visible">MarkDownload is open source. Licensed under MIT.</span>
+  <span data-lang="ru">MarkDownload — открытый исходный код. Лицензия MIT.</span>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/neo37/markdownload/releases" target="_blank">Releases</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/neo37/markdownload/issues" target="_blank">Issues</a>
+</footer>
+
+<script>
+  const LANGS = ['en', 'ru'];
+
+  function setLang(lang) {
+    document.documentElement.lang = lang;
+    LANGS.forEach(l => {
+      document.querySelectorAll(`[data-lang="${l}"]`).forEach(el => {
+        el.classList.toggle('visible', l === lang);
+      });
+      document.querySelectorAll('.lang-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', LANGS[i] === lang);
+      });
+    });
+    localStorage.setItem('lang', lang);
+  }
+
+  // Auto-detect language
+  const saved = localStorage.getItem('lang');
+  const browser = (navigator.language || navigator.userLanguage || 'en').substring(0, 2).toLowerCase();
+  setLang(saved || (browser === 'ru' ? 'ru' : 'en'));
+</script>
+
+</body>
+</html>

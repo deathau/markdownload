@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 
 <html>
@@ -8,11 +7,28 @@
     <link rel="stylesheet" href="lib/xq-dark.css">
     <link rel="stylesheet" href="lib/xq-light.css">
     <link rel="stylesheet" href="popup.css">
+    <style>
+      .ps-section { border-top: 1px solid #444; margin-top: 8px; padding-top: 8px; }
+      .ps-label { font-size: 11px; color: #888; margin-bottom: 4px; display: block; }
+      .ps-row { display: flex; gap: 4px; margin-bottom: 4px; }
+      .ps-btn {
+        flex: 1; padding: 6px 4px; font-size: 11px; cursor: pointer;
+        border: none; border-radius: 4px; color: #fff; white-space: nowrap;
+      }
+      .ps-btn:hover { opacity: 0.85; }
+      .ps-btn.blue   { background: #4285f4; }
+      .ps-btn.green  { background: #34a853; }
+      .ps-btn.orange { background: #f4a400; }
+      .ps-btn.red    { background: #d32f2f; }
+      .ps-btn.purple { background: #8e24aa; }
+      #ps-status { font-size: 11px; color: #aaa; padding: 4px 0 2px; min-height: 14px; }
+    </style>
   </head>
 
 <body>
   <div id="container">
-    
+
+    <!-- ── existing MarkDownload UI ── -->
     <a href="#" class="button toggle" id="downloadImages"><i class="check"></i>Download Images</a>
     <a href="/options/options.html" id="options" target="_blank">open options</a>
     <div class="row" id="clipOption">
@@ -22,9 +38,44 @@
     <a href="#" class="button toggle" id="includeTemplate"><i class="check"></i>Include front/back template</a>
     <input type="text" id="title"></input>
     <textarea id="md"></textarea>
-    <a href="#" class="button" id="download">Download</a>
+    <a href="#" class="button" id="download">Download Markdown</a>
     <a href="#" class="button" id="downloadSelection">Download selected</a>
+
+    <!-- ── Page Saver extras ── -->
+    <div class="ps-section">
+      <span class="ps-label">Current page</span>
+      <div class="ps-row">
+        <button class="ps-btn purple" id="ps-open-links">Open all links in new tabs (3s delay)</button>
+      </div>
+      <div class="ps-row">
+        <button class="ps-btn purple" id="ps-crawl-domain">Crawl entire domain (recursive, no duplicates)</button>
+        <button class="ps-btn" id="ps-stop-crawl" style="background:#555;flex:0 0 auto;padding:6px 8px;">Stop</button>
+      </div>
+      <div class="ps-row">
+        <button class="ps-btn blue"   id="ps-html-one">Save as HTML</button>
+        <button class="ps-btn orange" id="ps-png-one">Screenshot</button>
+        <button class="ps-btn red"    id="ps-pdf-one">Save as PDF</button>
+      </div>
+    </div>
+
+    <div class="ps-section">
+      <span class="ps-label">All open tabs</span>
+      <div class="ps-row">
+        <button class="ps-btn green"  id="ps-md-all">All → Markdown</button>
+        <button class="ps-btn blue"   id="ps-html-all">All → HTML</button>
+      </div>
+      <div class="ps-row">
+        <button class="ps-btn orange" id="ps-png-all">All → Screenshots</button>
+        <button class="ps-btn red"    id="ps-pdf-all">All → PDF</button>
+      </div>
+    </div>
+
+    <div id="ps-status"></div>
+    <div class="ps-row" style="margin-top:4px">
+      <button class="ps-btn" id="ps-show-logs" style="background:#666;font-size:10px">Show debug log</button>
+    </div>
   </div>
+
   <div id="spinner"></div>
   <script type="application/javascript" src="../browser-polyfill.min.js"></script>
   <script type="application/javascript" src="lib/codemirror.js"></script>

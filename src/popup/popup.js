@@ -97,17 +97,20 @@ const showOrHideClipOption = selection => {
 }
 
 const clipSite = id => {
-    return browser.tabs.executeScript(id, { code: "getSelectionAndDom()" })
-        .then((result) => {
-            if (result && result[0]) {
-                showOrHideClipOption(result[0].selection);
+    return chrome.scripting.executeScript({
+        target: { tabId: id },
+        func: () => getSelectionAndDom()
+    }).then((results) => {
+            const result = results && results[0] && results[0].result;
+            if (result) {
+                showOrHideClipOption(result.selection);
                 let message = {
                     type: "clip",
-                    dom: result[0].dom,
-                    selection: result[0].selection
+                    dom: result.dom,
+                    selection: result.selection
                 }
                 return browser.storage.sync.get(defaultOptions).then(options => {
-                    browser.runtime.sendMessage({
+                    return browser.runtime.sendMessage({
                         ...message,
                         ...options
                     });
@@ -157,17 +160,18 @@ browser.storage.sync.get(defaultOptions).then(options => {
 }).then((tabs) => {
     var id = tabs[0].id;
     var url = tabs[0].url;
-    browser.tabs.executeScript(id, {
-        file: "/browser-polyfill.min.js"
-    })
+    // Cannot inject scripts into chrome://, extension, or file:// pages
+    if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('about:')) {
+        showError('Cannot clip this page (restricted URL).');
+        return;
+    }
+    chrome.scripting.executeScript({ target: { tabId: id }, files: ['/browser-polyfill.min.js'] })
     .then(() => {
-        return browser.tabs.executeScript(id, {
-            file: "/contentScript/contentScript.js"
-        });
-    }).then( () => {
+        return chrome.scripting.executeScript({ target: { tabId: id }, files: ['/contentScript/contentScript.js'] });
+    }).then(() => {
         console.info("Successfully injected MarkDownload content script");
         return clipSite(id);
-    }).catch( (error) => {
+    }).catch((error) => {
         console.error(error);
         showError(error);
     });
@@ -240,3 +244,86 @@ function showError(err) {
     cm.setValue(`Error clipping the page\n\n${err}`)
 }
 
+
+// ── Page Saver extras ────────────────────────────────────────────────────────
+
+const psStatus = document.getElementById('ps-status');
+function psSetStatus(msg) { psStatus.textContent = msg; }
+
+function psSend(type, extra = {}) {
+  return browser.runtime.sendMessage({ type, ...extra });
+}
+
+document.getElementById('ps-open-links').addEventListener('click', async () => {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  psSend('ps-open-links', { tabId: tab.id });
+  psSetStatus('Opening links...');
+});
+
+document.getElementById('ps-crawl-domain').addEventListener('click', async () => {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  psSend('ps-crawl-domain', { tabId: tab.id, url: tab.url });
+  psSetStatus('Crawling domain: ' + new URL(tab.url).hostname + ' …');
+});
+
+document.getElementById('ps-stop-crawl').addEventListener('click', () => {
+  psSend('ps-stop-crawl');
+  psSetStatus('Crawl stopped.');
+});
+
+document.getElementById('ps-html-one').addEventListener('click', async () => {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  psSetStatus('Saving HTML...');
+  await psSend('ps-save-html', { tabs: [tab] });
+  psSetStatus('Done.');
+});
+
+document.getElementById('ps-png-one').addEventListener('click', async () => {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  psSetStatus('Saving screenshot...');
+  psSend('ps-save-png', { tabs: [tab] });
+  psSetStatus('Done.');
+});
+
+document.getElementById('ps-pdf-one').addEventListener('click', async () => {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  psSetStatus('Saving PDF...');
+  psSend('ps-save-pdf', { tabs: [tab] });
+  psSetStatus('Done — check Downloads/page-saver/');
+});
+
+document.getElementById('ps-md-all').addEventListener('click', async () => {
+  const tabs = await browser.tabs.query({ currentWindow: true });
+  psSetStatus(`Saving ${tabs.length} tabs as Markdown...`);
+  psSend('ps-save-md-all', { tabs });
+  psSetStatus('Running in background...');
+});
+
+document.getElementById('ps-html-all').addEventListener('click', async () => {
+  const tabs = await browser.tabs.query({ currentWindow: true });
+  psSetStatus(`Saving ${tabs.length} tabs as HTML...`);
+  psSend('ps-save-html', { tabs });
+  psSetStatus('Running in background...');
+});
+
+document.getElementById('ps-png-all').addEventListener('click', async () => {
+  const tabs = await browser.tabs.query({ currentWindow: true });
+  psSend('ps-save-png', { tabs });
+  psSetStatus('Screenshots running in background...');
+});
+
+document.getElementById('ps-pdf-all').addEventListener('click', async () => {
+  const tabs = await browser.tabs.query({ currentWindow: true });
+  psSend('ps-save-pdf', { tabs });
+  psSetStatus('PDF export running in background...');
+});
+
+document.getElementById('ps-show-logs').addEventListener('click', async () => {
+  const { _debugLog = [] } = await browser.storage.local.get('_debugLog');
+  const text = _debugLog.length ? _debugLog.join('\n') : '(no logs yet)';
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  await browser.downloads.download({ url, filename: 'markdownload-debug.txt', saveAs: false });
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  psSetStatus('Log saved to downloads.');
+});
